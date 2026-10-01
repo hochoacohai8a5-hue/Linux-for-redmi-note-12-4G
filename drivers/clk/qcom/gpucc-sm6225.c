@@ -65,7 +65,7 @@ static struct clk_alpha_pll gpu_cc_pll0 = {
 	.offset = 0x0,
 	.vco_table = zonda_vco,
 	.num_vco = ARRAY_SIZE(zonda_vco),
-	//.flags = SUPPORTS_DYNAMIC_UPDATE,
+	.flags = SUPPORTS_DYNAMIC_UPDATE,
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_ZONDA],
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
@@ -190,8 +190,11 @@ static const struct freq_tbl ftbl_gpu_cc_gx_gfx3d_clk_src[] = {
 	F(320000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(465000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(600000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+	F(745000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(785000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(820000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+	F(900000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+	F(950000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(980000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(1025000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(1100000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),

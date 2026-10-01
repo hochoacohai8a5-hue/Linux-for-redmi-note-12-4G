@@ -13,6 +13,7 @@
 #include <sound/soc-dapm.h>
 #include <sound/pcm.h>
 #include <linux/spinlock.h>
+#include <linux/soc/qcom/apr.h>
 #include <sound/compress_driver.h>
 #include <asm/div64.h>
 #include <asm/dma.h>
@@ -184,6 +185,12 @@ static void event_handler(uint32_t opcode, uint32_t token,
 
 	switch (opcode) {
 	case ASM_CLIENT_EVENT_CMD_RUN_DONE:
+		{
+			struct aprv2_ibasic_rsp_result_t *res = payload;
+			dev_err(prtd->substream->pcm->card->dev,
+				"RUN_DONE status 0x%x token 0x%x\n",
+				res ? res->status : 0xdead, token);
+		}
 		break;
 	case ASM_CLIENT_EVENT_CMD_EOS_DONE:
 		break;

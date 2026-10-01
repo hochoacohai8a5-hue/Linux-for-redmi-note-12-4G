@@ -388,6 +388,9 @@ int dpu_core_perf_crtc_update(struct drm_crtc *crtc,
 	 * bandwidth is available before clock rate is increased.
 	 */
 	if (update_clk) {
+		struct dev_pm_opp *opp;
+		unsigned long opp_rate;
+
 		clk_rate = _dpu_core_perf_get_core_clk_rate(kms);
 
 		DRM_DEBUG_ATOMIC("clk:%llu\n", clk_rate);
@@ -395,6 +398,22 @@ int dpu_core_perf_crtc_update(struct drm_crtc *crtc,
 		trace_dpu_core_perf_update_clk(kms->dev, !crtc->enabled, clk_rate);
 
 		clk_rate = min(clk_rate, kms->perf.max_core_clk_rate);
+		/*
+		 * Display bandwidth produces a calculated rate, while the DT
+		 * describes the discrete rates supported by the clock controller.
+		 * Round up before selecting the OPP; dev_pm_opp_set_rate() requires
+		 * an exact OPP and otherwise returns -EINVAL.
+		 */
+		opp_rate = clk_rate;
+		opp = dev_pm_opp_find_freq_ceil(&kms->pdev->dev, &opp_rate);
+		if (IS_ERR(opp)) {
+			ret = PTR_ERR(opp);
+			DPU_ERROR("failed to find core clock OPP for %llu: %d\n",
+				  clk_rate, ret);
+			return ret;
+		}
+		clk_rate = dev_pm_opp_get_freq(opp);
+		dev_pm_opp_put(opp);
 		ret = dev_pm_opp_set_rate(&kms->pdev->dev, clk_rate);
 		if (ret) {
 			DPU_ERROR("failed to set core clock rate %llu\n", clk_rate);

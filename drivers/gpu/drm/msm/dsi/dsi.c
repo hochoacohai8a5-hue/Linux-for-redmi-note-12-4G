@@ -94,16 +94,19 @@ static struct msm_dsi *dsi_init(struct platform_device *pdev)
 	platform_set_drvdata(pdev, msm_dsi);
 
 	/* Init dsi host */
+	pr_info("ret = msm_dsi_host_init(msm_dsi);");
 	ret = msm_dsi_host_init(msm_dsi);
 	if (ret)
 		goto destroy_dsi;
 
 	/* GET dsi PHY */
+	pr_info("ret = dsi_get_phy(msm_dsi);");
 	ret = dsi_get_phy(msm_dsi);
 	if (ret)
 		goto destroy_dsi;
 
 	/* Register to dsi manager */
+	pr_info("ret = msm_dsi_manager_register(msm_dsi);");
 	ret = msm_dsi_manager_register(msm_dsi);
 	if (ret)
 		goto destroy_dsi;
@@ -111,6 +114,7 @@ static struct msm_dsi *dsi_init(struct platform_device *pdev)
 	return msm_dsi;
 
 destroy_dsi:
+	pr_info("fail on dsi_init");
 	dsi_destroy(msm_dsi);
 	return ERR_PTR(ret);
 }
@@ -171,14 +175,20 @@ static int dsi_dev_probe(struct platform_device *pdev)
 	struct msm_dsi *msm_dsi;
 
 	DBG("");
+	pr_info("msm_dsi = dsi_init(pdev);");
 	msm_dsi = dsi_init(pdev);
 	if (IS_ERR(msm_dsi)) {
 		/* Don't fail the bind if the dsi port is not connected */
-		if (PTR_ERR(msm_dsi) == -ENODEV)
+		if (PTR_ERR(msm_dsi) == -ENODEV) {
+			pr_info("fail on PTR_ERR(msm_dsi) == -ENODEV");
 			return 0;
-		else
+		} else {
+			pr_info("no fail on PTR_ERR(msm_dsi) == -ENODEV");
 			return PTR_ERR(msm_dsi);
+		}
 	}
+
+	pr_info("dsi_dev_probe done");
 
 	return 0;
 }

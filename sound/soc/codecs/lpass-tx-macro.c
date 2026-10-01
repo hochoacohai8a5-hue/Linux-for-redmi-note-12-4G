@@ -2363,6 +2363,8 @@ static int tx_macro_probe(struct platform_device *pdev)
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
+	/* TEMP-HOLD: pin awake to test whether idle suspend kills the link */
+	pm_runtime_get_sync(dev);
 
 	ret = tx_macro_register_mclk_output(tx);
 	if (ret)

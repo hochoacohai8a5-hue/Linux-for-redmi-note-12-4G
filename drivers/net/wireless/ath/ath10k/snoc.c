@@ -1734,6 +1734,8 @@ static int ath10k_snoc_probe(struct platform_device *pdev)
 	int ret;
 	u32 i;
 
+	pr_info("starting to probe ath10k_snoc\n");
+
 	dev = &pdev->dev;
 	drv_data = device_get_match_data(dev);
 	if (!drv_data) {
@@ -1761,6 +1763,8 @@ static int ath10k_snoc_probe(struct platform_device *pdev)
 	ar_snoc->ce.bus_ops = &ath10k_snoc_bus_ops;
 	ar->ce_priv = &ar_snoc->ce;
 	msa_size = drv_data->msa_size;
+
+	pr_info("actual ath10k init starts here");
 
 	ath10k_snoc_quirks_init(ar);
 
@@ -1865,23 +1869,29 @@ static int ath10k_snoc_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_qmi_deinit;
 
+	pr_info("actual ath10k init ends here");
 	ath10k_dbg(ar, ATH10K_DBG_SNOC, "snoc probe\n");
 
 	return 0;
 
 err_qmi_deinit:
+	pr_info("error err_qmi_deinit");
 	ath10k_qmi_deinit(ar);
 
 err_fw_deinit:
+	pr_info("error err_fw_deinit");
 	ath10k_fw_deinit(ar);
 
 err_free_irq:
+	pr_info("error err_free_irq");
 	ath10k_snoc_free_irq(ar);
 
 err_release_resource:
+	pr_info("error err_release_resource");
 	ath10k_snoc_release_resource(ar);
 
 err_core_destroy:
+	pr_info("error err_core_destroy");
 	ath10k_core_destroy(ar);
 
 	return ret;

@@ -761,14 +761,17 @@ int qcom_scm_pas_mem_setup(u32 pas_id, phys_addr_t addr, phys_addr_t size)
 	struct qcom_scm_res res;
 
 	ret = qcom_scm_clk_enable();
+	pr_err("ret=%d", ret);
 	if (ret)
 		return ret;
 
 	ret = qcom_scm_bw_enable();
+	pr_err("ret=%d", ret);
 	if (ret)
 		goto disable_clk;
 
 	ret = qcom_scm_call(__scm->dev, &desc, &res);
+	pr_err("ret=%d, ret ? : res.result[0]=%d", ret, ret ? : res.result[0]);
 	qcom_scm_bw_disable();
 
 disable_clk:

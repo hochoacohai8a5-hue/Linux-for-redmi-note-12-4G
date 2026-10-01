@@ -1498,6 +1498,10 @@ static int va_macro_set_lpass_codec_version(struct va_macro *va)
 		case 0:
 			version = LPASS_CODEC_VERSION_2_0;
 			break;
+		case 1:
+		case 2:
+			version = LPASS_CODEC_VERSION_2_1;
+			break;
 		case 5:
 			version = LPASS_CODEC_VERSION_2_5;
 			break;
@@ -1671,6 +1675,8 @@ static int va_macro_probe(struct platform_device *pdev)
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
+	/* TEMP-HOLD: pin awake to test whether idle suspend kills the link */
+	pm_runtime_get_sync(dev);
 
 	ret = va_macro_register_fsgen_output(va);
 	if (ret)

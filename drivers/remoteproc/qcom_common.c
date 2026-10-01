@@ -248,13 +248,19 @@ void qcom_add_glink_subdev(struct rproc *rproc, struct qcom_rproc_glink *glink,
 {
 	struct device *dev = &rproc->dev;
 
+	pr_err("adding glink subdev");
+
 	glink->node = of_get_child_by_name(dev->parent->of_node, "glink-edge");
-	if (!glink->node)
+	if (!glink->node) {
+		pr_err("return on (!glink->node)");
 		return;
+	}
 
 	glink->ssr_name = kstrdup_const(ssr_name, GFP_KERNEL);
-	if (!glink->ssr_name)
+	if (!glink->ssr_name) {
+		pr_err("return on (!glink->ssr_name)");
 		return;
+	}
 
 	glink->dev = dev;
 	glink->subdev.start = glink_subdev_start;
@@ -262,6 +268,8 @@ void qcom_add_glink_subdev(struct rproc *rproc, struct qcom_rproc_glink *glink,
 	glink->subdev.unprepare = glink_subdev_unprepare;
 
 	rproc_add_subdev(rproc, &glink->subdev);
+
+	pr_err("finished adding glink subdev");
 }
 EXPORT_SYMBOL_GPL(qcom_add_glink_subdev);
 

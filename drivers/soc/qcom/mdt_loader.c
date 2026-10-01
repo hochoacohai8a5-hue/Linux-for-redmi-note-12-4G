@@ -280,6 +280,7 @@ static int __qcom_mdt_pas_init(struct device *dev, const struct firmware *fw,
 	}
 
 	if (relocate) {
+		dev_info(dev, "mem_phys=%04x, max_addr=%04x, min_addr=%04x, max_addr - min_addr=%04x\n", mem_phys, max_addr, min_addr, max_addr - min_addr);
 		ret = qcom_scm_pas_mem_setup(pas_id, mem_phys, max_addr - min_addr);
 		if (ret) {
 			/* Unable to set up relocation */

@@ -152,7 +152,7 @@ static struct clk_rcg2 disp_cc_mdss_byte0_clk_src = {
 		.name = "disp_cc_mdss_byte0_clk_src",
 		.parent_data = disp_cc_parent_data_0,
 		.num_parents = ARRAY_SIZE(disp_cc_parent_data_0),
-		.flags = CLK_SET_RATE_PARENT,
+		.flags = CLK_SET_RATE_PARENT | CLK_OPS_PARENT_ENABLE,
 		.ops = &clk_byte2_ops,
 	},
 };
@@ -210,7 +210,7 @@ static struct clk_rcg2 disp_cc_mdss_pclk0_clk_src = {
 		.name = "disp_cc_mdss_pclk0_clk_src",
 		.parent_data = disp_cc_parent_data_3,
 		.num_parents = ARRAY_SIZE(disp_cc_parent_data_3),
-		.flags = CLK_SET_RATE_PARENT,
+		.flags = CLK_SET_RATE_PARENT | CLK_OPS_PARENT_ENABLE,
 		.ops = &clk_pixel_ops,
 	},
 };
@@ -544,6 +544,7 @@ static int disp_cc_sm6225_probe(struct platform_device *pdev)
 	struct regmap *regmap;
 	int ret;
 
+	dev_info(&pdev->dev, "regmap = qcom_cc_map(pdev, &disp_cc_sm6225_desc);");
 	regmap = qcom_cc_map(pdev, &disp_cc_sm6225_desc);
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
@@ -552,17 +553,22 @@ static int disp_cc_sm6225_probe(struct platform_device *pdev)
 	 * Keep the clock always-ON
 	 * DISP_CC_SLEEP_CLK, DISP_CC_XO_CLK
 	 */
+	dev_info(&pdev->dev, "regmap_update_bits(regmap, 0x5004, BIT(0), BIT(0));");
 	regmap_update_bits(regmap, 0x5004, BIT(0), BIT(0));
+	dev_info(&pdev->dev, "regmap_update_bits(regmap, 0x5008, BIT(0), BIT(0));");
 	regmap_update_bits(regmap, 0x5008, BIT(0), BIT(0));
 
+	dev_info(&pdev->dev, "clk_lucid_pll_configure(&disp_cc_pll0, regmap, &disp_cc_pll0_config);");
 	clk_lucid_pll_configure(&disp_cc_pll0, regmap, &disp_cc_pll0_config);
 
+	dev_info(&pdev->dev,"ret = qcom_cc_really_probe(&pdev->dev, &disp_cc_sm6225_desc, regmap);");
 	ret = qcom_cc_really_probe(&pdev->dev, &disp_cc_sm6225_desc, regmap);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to register DISP CC clocks\n");
 		return ret;
 	}
 
+	dev_info(&pdev->dev, "Registered DISP CC clocks\n");
 	return ret;
 }
 
@@ -587,3 +593,4 @@ static void __exit disp_cc_sm6225_exit(void)
 module_exit(disp_cc_sm6225_exit);
 
 MODULE_DESCRIPTION("QTI DISP_CC SM6225 Driver");
+MODULE_LICENSE("GPL");

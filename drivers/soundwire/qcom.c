@@ -955,6 +955,22 @@ static int qcom_swrm_init(struct qcom_swrm_ctrl *ctrl)
 	else
 		ctrl->wr_fifo_depth = FIELD_GET(SWRM_COMP_PARAMS_WR_FIFO_DEPTH, val);
 
+	{
+		u32 cfg, sts, bus, slv, h1 = 0, h2 = 0;
+		void __iomem *h;
+		ctrl->reg_read(ctrl, SWRM_COMP_CFG_ADDR, &cfg);
+		ctrl->reg_read(ctrl, SWRM_COMP_STATUS, &sts);
+		ctrl->reg_read(ctrl, SWRM_MCP_BUS_CTRL, &bus);
+		ctrl->reg_read(ctrl, SWRM_MCP_SLV_STATUS, &slv);
+		h = ioremap(0xa7ec100, 4);
+		if (h) { h1 = readl(h); iounmap(h); }
+		h = ioremap(0xa6a9098, 4);
+		if (h) { h2 = readl(h); iounmap(h); }
+		dev_err(ctrl->dev,
+			"init done: comp_cfg=%#x comp_sts=%#x bus_ctrl=%#x slv_sts=%#x hctl_va=%#x hctl_rx=%#x\n",
+			cfg, sts, bus, slv, h1, h2);
+	}
+
 	return 0;
 }
 
@@ -1676,6 +1692,8 @@ static int qcom_swrm_probe(struct platform_device *pdev)
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
+	/* TEMP-HOLD: pin awake to test whether idle suspend kills the link */
+	pm_runtime_get_sync(dev);
 
 #ifdef CONFIG_DEBUG_FS
 	ctrl->debugfs = debugfs_create_dir("qualcomm-sdw", ctrl->bus.debugfs);
@@ -1730,7 +1748,14 @@ static int __maybe_unused swrm_runtime_resume(struct device *dev)
 		qcom_swrm_get_device_status(ctrl);
 		sdw_handle_slave_status(&ctrl->bus, ctrl->status);
 	} else {
-		reset_control_reset(ctrl->audio_cgcr);
+		/*
+		 * The audio_cgcr reset above clears the manager programming
+		 * done at probe time (COMP enable, enumerator and frame
+		 * configuration), so redo the full initialization. Without
+		 * this the link never restarts after a clock-stop
+		 * suspend/resume cycle ("link failed to connect").
+		 */
+		qcom_swrm_init(ctrl);
 
 		if (ctrl->version == SWRM_VERSION_1_7_0) {
 			ctrl->reg_write(ctrl, SWRM_LINK_MANAGER_EE, SWRM_EE_CPU);
@@ -1763,6 +1788,17 @@ static int __maybe_unused swrm_runtime_resume(struct device *dev)
 			dev_err(ctrl->dev, "bus failed to exit clock stop %d\n", ret);
 	}
 
+	{
+		u32 cfg, sts, bus, slv;
+		ctrl->reg_read(ctrl, SWRM_COMP_CFG_ADDR, &cfg);
+		ctrl->reg_read(ctrl, SWRM_COMP_STATUS, &sts);
+		ctrl->reg_read(ctrl, SWRM_MCP_BUS_CTRL, &bus);
+		ctrl->reg_read(ctrl, SWRM_MCP_SLV_STATUS, &slv);
+		dev_err(ctrl->dev,
+			"resume done: comp_cfg=%#x comp_sts=%#x bus_ctrl=%#x slv_sts=%#x\n",
+			cfg, sts, bus, slv);
+	}
+
 	return 0;
 }
 
@@ -1770,6 +1806,17 @@ static int __maybe_unused swrm_runtime_suspend(struct device *dev)
 {
 	struct qcom_swrm_ctrl *ctrl = dev_get_drvdata(dev);
 	int ret;
+
+	{
+		u32 cfg, sts, bus, slv;
+		ctrl->reg_read(ctrl, SWRM_COMP_CFG_ADDR, &cfg);
+		ctrl->reg_read(ctrl, SWRM_COMP_STATUS, &sts);
+		ctrl->reg_read(ctrl, SWRM_MCP_BUS_CTRL, &bus);
+		ctrl->reg_read(ctrl, SWRM_MCP_SLV_STATUS, &slv);
+		dev_err(ctrl->dev,
+			"suspend enter: comp_cfg=%#x comp_sts=%#x bus_ctrl=%#x slv_sts=%#x\n",
+			cfg, sts, bus, slv);
+	}
 
 	swrm_wait_for_wr_fifo_done(ctrl);
 	if (!ctrl->clock_stop_not_supported) {

@@ -93,8 +93,10 @@ static int dwc3_get_dr_mode(struct dwc3 *dwc)
 		if (mode == USB_DR_MODE_OTG && !dwc->edev &&
 		    (!IS_ENABLED(CONFIG_USB_ROLE_SWITCH) ||
 		     !device_property_read_bool(dwc->dev, "usb-role-switch")) &&
-		    !DWC3_VER_IS_PRIOR(DWC3, 330A))
+		    !DWC3_VER_IS_PRIOR(DWC3, 330A)) {
+			dev_err(dev, "Controller does not support role switch.");
 			mode = USB_DR_MODE_PERIPHERAL;
+		}
 	}
 
 	if (mode != dwc->dr_mode) {

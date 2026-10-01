@@ -230,7 +230,7 @@ dsi_get_config(struct msm_dsi_host *msm_host)
 
 	cfg_hnd = msm_dsi_cfg_get(major, minor);
 
-	DBG("%s: Version %x:%x\n", __func__, major, minor);
+	dev_info(dev, "%s: Version %x:%x\n", __func__, major, minor);
 
 disable_clks:
 	clk_disable_unprepare(ahb_clk);

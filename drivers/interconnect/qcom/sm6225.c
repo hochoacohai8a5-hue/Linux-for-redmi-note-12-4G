@@ -1808,12 +1808,12 @@ static const struct qcom_icc_desc sm6225_mmrt_virt = {
 
 static const struct of_device_id qnoc_of_match[] = {
 	{ .compatible = "qcom,sm6225-bimc", .data = &sm6225_bimc},
-	{ .compatible = "qcom,sm6225-config-noc", .data = &sm6225_config_noc},
-	{ .compatible = "qcom,sm6225-gpu-vert", .data = &sm6225_gpu_vert},
+	{ .compatible = "qcom,sm6225-cnoc", .data = &sm6225_config_noc},
+	{ .compatible = "qcom,sm6225-gpu-virt", .data = &sm6225_gpu_vert},
 	{ .compatible = "qcom,sm6225-mmnrt-virt", .data = &sm6225_mmnrt_virt},
 	{ .compatible = "qcom,sm6225-mmrt-virt", .data = &sm6225_mmrt_virt},
 	{ .compatible = "qcom,sm6225-qup-virt", .data = &sm6225_qup_virt},
-	{ .compatible = "qcom,sm6225-sys-noc", .data = &sm6225_sys_noc},
+	{ .compatible = "qcom,sm6225-snoc", .data = &sm6225_sys_noc},
 	{ }
 };
 MODULE_DEVICE_TABLE(of, qnoc_of_match);

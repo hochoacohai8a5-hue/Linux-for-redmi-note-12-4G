@@ -586,7 +586,7 @@ static int _dpu_kms_initialize_dsi(struct drm_device *dev,
 	int i, rc = 0;
 
 	if (!(priv->kms->dsi[0] || priv->kms->dsi[1]))
-		return rc;
+		return -19;
 
 	/*
 	 * We support following confiurations:
@@ -817,6 +817,10 @@ static int _dpu_kms_drm_obj_init(struct dpu_kms *dpu_kms)
 	dev = dpu_kms->dev;
 	priv = dev->dev_private;
 	catalog = dpu_kms->catalog;
+	DRM_INFO("DPU catalog: lm=%d intf=%d dspp=%d ctl=%d wb=%d sspp=%d\n",
+		 catalog->mixer_count, catalog->intf_count,
+		 catalog->dspp_count, catalog->ctl_count,
+		 catalog->wb_count, catalog->sspp_count);
 
 	/*
 	 * Create encoder and query display drivers to create
@@ -826,14 +830,22 @@ static int _dpu_kms_drm_obj_init(struct dpu_kms *dpu_kms)
 	if (ret)
 		return ret;
 
+	DRM_INFO("DPU catalog: lm=%d intf=%d dspp=%d ctl=%d wb=%d sspp=%d\n",
+		 catalog->mixer_count, catalog->intf_count,
+	  catalog->dspp_count, catalog->ctl_count,
+	  catalog->wb_count, catalog->sspp_count);
+
 	num_encoders = 0;
 	drm_for_each_encoder(encoder, dev) {
 		num_encoders++;
 		if (catalog->cwb_count > 0)
 			encoder->possible_clones = dpu_encoder_get_clones(encoder);
 	}
+	DRM_INFO("num_encoders = %d", num_encoders);
 
 	max_crtc_count = min(catalog->mixer_count, num_encoders);
+
+	DRM_INFO("max_crtc_count = %d", max_crtc_count);
 
 	/* Create the planes, keeping track of one primary/cursor per crtc */
 	for (i = 0; i < catalog->sspp_count; i++) {
@@ -1503,6 +1515,7 @@ static const struct of_device_id dpu_dt_match[] = {
 	{ .compatible = "qcom,sm6115-dpu", .data = &dpu_sm6115_cfg, },
 	{ .compatible = "qcom,sm6125-dpu", .data = &dpu_sm6125_cfg, },
 	{ .compatible = "qcom,sm6150-dpu", .data = &dpu_sm6150_cfg, },
+	{ .compatible = "qcom,sm6225-dpu", .data = &dpu_sm6225_cfg, },
 	{ .compatible = "qcom,sm6350-dpu", .data = &dpu_sm6350_cfg, },
 	{ .compatible = "qcom,sm6375-dpu", .data = &dpu_sm6375_cfg, },
 	{ .compatible = "qcom,sm7150-dpu", .data = &dpu_sm7150_cfg, },

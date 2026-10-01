@@ -567,8 +567,23 @@ static const struct qcom_cc_desc disp_cc_sm6375_desc = {
 	.num_gdscs = ARRAY_SIZE(disp_cc_sm6375_gdscs),
 };
 
+#if CONFIG_SM_DISPCC_6225
+static const struct qcom_cc_desc disp_cc_sm6225_desc = {
+	.config = &disp_cc_sm6375_regmap_config,
+	.clks = disp_cc_sm6375_clocks,
+	.num_clks = ARRAY_SIZE(disp_cc_sm6375_clocks),
+	.resets = disp_cc_sm6375_resets,
+	.num_resets = ARRAY_SIZE(disp_cc_sm6375_resets),
+	.gdscs = disp_cc_sm6375_gdscs,
+	.num_gdscs = ARRAY_SIZE(disp_cc_sm6375_gdscs),
+};
+#endif
+
 static const struct of_device_id disp_cc_sm6375_match_table[] = {
 	{ .compatible = "qcom,sm6375-dispcc" },
+#if CONFIG_SM_DISPCC_6225
+	{ .compatible = "qcom,sm6225-dispcc" },
+#endif
 	{ }
 };
 MODULE_DEVICE_TABLE(of, disp_cc_sm6375_match_table);
@@ -576,14 +591,27 @@ MODULE_DEVICE_TABLE(of, disp_cc_sm6375_match_table);
 static int disp_cc_sm6375_probe(struct platform_device *pdev)
 {
 	struct regmap *regmap;
+	const struct qcom_cc_desc *desc = &disp_cc_sm6375_desc;
 
-	regmap = qcom_cc_map(pdev, &disp_cc_sm6375_desc);
+#if CONFIG_SM_DISPCC_6225
+	if (of_device_is_compatible(pdev->dev.of_node, "qcom,sm6225-dispcc"))
+		desc = &disp_cc_sm6225_desc;
+#endif
+
+	regmap = qcom_cc_map(pdev, desc);
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
 
 	clk_lucid_pll_configure(&disp_cc_pll0, regmap, &disp_cc_pll0_config);
 
-	return qcom_cc_really_probe(&pdev->dev, &disp_cc_sm6375_desc, regmap);
+#if CONFIG_SM_DISPCC_6225
+	if (desc == &disp_cc_sm6225_desc) {
+		regmap_update_bits(regmap, 0x5004, BIT(0), BIT(0));
+		regmap_update_bits(regmap, 0x5008, BIT(0), BIT(0));
+	}
+#endif
+
+	return qcom_cc_really_probe(&pdev->dev, desc, regmap);
 }
 
 static struct platform_driver disp_cc_sm6375_driver = {

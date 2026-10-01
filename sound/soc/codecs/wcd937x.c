@@ -2564,6 +2564,11 @@ static int wcd937x_soc_codec_probe(struct snd_soc_component *component)
 	disable_irq_nosync(wcd937x->hphl_pdm_wd_int);
 	disable_irq_nosync(wcd937x->aux_pdm_wd_int);
 
+	dev_info(dev, "wcd937x chipid 0x%x\n", chipid);
+
+	/* NOTE (spes): chipid reads 0x0 (WCD9370). The 9375-only
+	 * DMIC/ADC3 widgets were tested here and caused SoundWire
+	 * bus clashes, so this silicon has no DMIC hardware. */
 	if (chipid == CHIPID_WCD9375) {
 		ret = snd_soc_dapm_new_controls(dapm, wcd9375_dapm_widgets,
 						ARRAY_SIZE(wcd9375_dapm_widgets));
@@ -2961,6 +2966,8 @@ static int wcd937x_probe(struct platform_device *pdev)
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
+	/* TEMP-HOLD: pin awake to test whether idle suspend kills the link */
+	pm_runtime_get_sync(dev);
 	pm_runtime_idle(dev);
 
 	return 0;

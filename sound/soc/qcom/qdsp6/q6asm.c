@@ -40,6 +40,10 @@
 #define ASM_PARAM_ID_ENCDEC_ENC_CFG_BLK_V2	0x00010DA3
 #define ASM_SESSION_CMD_RUN_V2			0x00010DAA
 #define ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V2	0x00010DA5
+/* TEMP-V3-TEST: V3 session (era-plausible newest for Jan-2022 firmware) */
+#define ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V3	0x00010DDC
+#define ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V4	0x0001320C
+#define ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V5	0x00013222
 #define ASM_MEDIA_FMT_MP3			0x00010BE9
 #define ASM_MEDIA_FMT_FLAC			0x00010C16
 #define ASM_MEDIA_FMT_WMA_V9			0x00010DA8
@@ -97,6 +101,57 @@ struct asm_multi_channel_pcm_fmt_blk_v2 {
 	u16 is_signed;
 	u16 reserved;
 	u8 channel_mapping[PCM_MAX_NUM_CHANNEL];
+} __packed;
+
+/* TEMP-V3-TEST: V3 format block */
+struct asm_multi_channel_pcm_fmt_blk_v3 {
+	u16 num_channels;
+	u16 bits_per_sample;
+	u32 sample_rate;
+	u16 is_signed;
+	u16 sample_word_size;
+	u8 channel_mapping[PCM_MAX_NUM_CHANNEL];
+} __packed;
+
+struct asm_multi_channel_pcm_fmt_blk_param_v3 {
+	struct apr_hdr hdr;
+	struct asm_data_cmd_media_fmt_update_v2 fmt_blk;
+	struct asm_multi_channel_pcm_fmt_blk_v3 param;
+} __packed;
+
+/* TEMP-V4-TEST: V4 format block (bengal-era firmware fallback) */
+struct asm_multi_channel_pcm_fmt_blk_v4 {
+	u16 num_channels;
+	u16 bits_per_sample;
+	u32 sample_rate;
+	u16 is_signed;
+	u16 sample_word_size;
+	u8 channel_mapping[PCM_MAX_NUM_CHANNEL];
+	u16 endianness;
+	u16 mode;
+} __packed;
+
+struct asm_multi_channel_pcm_fmt_blk_param_v4 {
+	struct apr_hdr hdr;
+	struct asm_data_cmd_media_fmt_update_v2 fmt_blk;
+	struct asm_multi_channel_pcm_fmt_blk_v4 param;
+} __packed;
+
+struct asm_multi_channel_pcm_fmt_blk_v5 {
+	u16 num_channels;
+	u16 bits_per_sample;
+	u32 sample_rate;
+	u16 is_signed;
+	u16 sample_word_size;
+	u16 endianness;
+	u16 mode;
+	u8 channel_mapping[32];
+} __packed;
+
+struct asm_multi_channel_pcm_fmt_blk_param_v5 {
+	struct apr_hdr hdr;
+	struct asm_data_cmd_media_fmt_update_v2 fmt_blk;
+	struct asm_multi_channel_pcm_fmt_blk_v5 param;
 } __packed;
 
 struct asm_flac_fmt_blk_v2 {
@@ -189,6 +244,21 @@ struct asm_multi_channel_pcm_enc_cfg_v2 {
 	uint16_t  is_signed;
 	uint16_t  reserved;
 	uint8_t   channel_mapping[8];
+} __packed;
+
+/* TEMP-V5-TEST: V5 encoder config block */
+struct asm_multi_channel_pcm_enc_cfg_v5 {
+	struct apr_hdr hdr;
+	struct asm_stream_cmd_set_encdec_param encdec;
+	struct asm_enc_cfg_blk_param_v2 encblk;
+	uint16_t num_channels;
+	uint16_t bits_per_sample;
+	uint32_t sample_rate;
+	uint16_t is_signed;
+	uint16_t sample_word_size;
+	uint16_t endianness;
+	uint16_t mode;
+	uint8_t channel_mapping[32];
 } __packed;
 
 struct asm_data_cmd_read_v2 {
@@ -656,6 +726,9 @@ static int32_t q6asm_stream_callback(struct apr_device *adev,
 		case ASM_DATA_CMD_READ_V2:
 		case ASM_DATA_CMD_WRITE_V2:
 			/* response as result of close stream */
+			dev_err(ac->dev,
+				"basic-rsp to data cmd 0x%x status 0x%x (token 0x%x)\n",
+				result->opcode, result->status, hdr->token);
 			goto done;
 		default:
 			dev_err(ac->dev, "command[0x%x] not expecting rsp\n",
@@ -897,8 +970,8 @@ static int q6asm_ac_send_cmd_sync(struct audio_client *ac, struct apr_pkt *pkt)
 	}
 
 	if (ac->result.status > 0) {
-		dev_err(ac->dev, "DSP returned error[%x]\n",
-			ac->result.status);
+		dev_err(ac->dev, "DSP returned error[%x] for cmd %x\n",
+			ac->result.status, hdr->opcode);
 		rc = -EINVAL;
 	} else {
 		rc = 0;
@@ -946,14 +1019,15 @@ int q6asm_open_write(struct audio_client *ac, uint32_t stream_id,
 	/* source endpoint : matrix */
 	open->sink_endpointype = ASM_END_POINT_DEVICE_MATRIX;
 	open->bits_per_sample = bits_per_sample;
-	open->postprocopo_id = ASM_NULL_POPP_TOPOLOGY;
+	/* TEMP-TOPO-TEST: downstream default POPP instead of NULL */
+	open->postprocopo_id = 0x00010BE4;
 
 	switch (format) {
 	case SND_AUDIOCODEC_MP3:
 		open->dec_fmt_id = ASM_MEDIA_FMT_MP3;
 		break;
 	case FORMAT_LINEAR_PCM:
-		open->dec_fmt_id = ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V2;
+		open->dec_fmt_id = ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V5;
 		break;
 	case SND_AUDIOCODEC_FLAC:
 		open->dec_fmt_id = ASM_MEDIA_FMT_FLAC;
@@ -1085,39 +1159,45 @@ int q6asm_media_format_block_multi_ch_pcm(struct audio_client *ac,
 					  u8 channel_map[PCM_MAX_NUM_CHANNEL],
 					  uint16_t bits_per_sample)
 {
-	struct asm_multi_channel_pcm_fmt_blk_v2 *fmt;
-	struct apr_pkt *pkt;
+	struct asm_multi_channel_pcm_fmt_blk_param_v5 *fmt;
 	u8 *channel_mapping;
-	int pkt_size = APR_HDR_SIZE + sizeof(*fmt);
+	u8 ch_map_8[PCM_MAX_NUM_CHANNEL];
+	int pkt_size = sizeof(*fmt);
 
 	void *p __free(kfree) = kzalloc(pkt_size, GFP_KERNEL);
 	if (!p)
 		return -ENOMEM;
 
-	pkt = p;
-	fmt = p + APR_HDR_SIZE;
+	fmt = p;
 
-	q6asm_add_hdr(ac, &pkt->hdr, pkt_size, true, stream_id);
+	q6asm_add_hdr(ac, &fmt->hdr, pkt_size, true, stream_id);
 
-	pkt->hdr.opcode = ASM_DATA_CMD_MEDIA_FMT_UPDATE_V2;
-	fmt->fmt_blk.fmt_blk_size = sizeof(*fmt) - sizeof(fmt->fmt_blk);
-	fmt->num_channels = channels;
-	fmt->bits_per_sample = bits_per_sample;
-	fmt->sample_rate = rate;
-	fmt->is_signed = 1;
+	fmt->hdr.opcode = ASM_DATA_CMD_MEDIA_FMT_UPDATE_V2;
+	fmt->fmt_blk.fmt_blk_size = sizeof(*fmt) - sizeof(fmt->hdr) -
+				    sizeof(fmt->fmt_blk);
+	fmt->param.num_channels = channels;
+	fmt->param.bits_per_sample = bits_per_sample;
+	fmt->param.sample_rate = rate;
+	fmt->param.is_signed = 1;
+	fmt->param.sample_word_size = bits_per_sample;
+	fmt->param.endianness = 0;
+	fmt->param.mode = 0;
 
-	channel_mapping = fmt->channel_mapping;
+	memset(fmt->param.channel_mapping, 0,
+	       sizeof(fmt->param.channel_mapping));
+	channel_mapping = fmt->param.channel_mapping;
 
 	if (channel_map) {
 		memcpy(channel_mapping, channel_map, PCM_MAX_NUM_CHANNEL);
 	} else {
-		if (q6dsp_map_channels(channel_mapping, channels)) {
+		if (q6dsp_map_channels(ch_map_8, channels)) {
 			dev_err(ac->dev, " map channels failed %d\n", channels);
 			return -EINVAL;
 		}
+		memcpy(channel_mapping, ch_map_8, PCM_MAX_NUM_CHANNEL);
 	}
 
-	return q6asm_ac_send_cmd_sync(ac, pkt);
+	return q6asm_ac_send_cmd_sync(ac, (struct apr_pkt *)fmt);
 }
 EXPORT_SYMBOL_GPL(q6asm_media_format_block_multi_ch_pcm);
 
@@ -1353,23 +1433,23 @@ int q6asm_enc_cfg_blk_pcm_format_support(struct audio_client *ac,
 					 uint32_t channels,
 					 uint16_t bits_per_sample)
 {
-	struct asm_multi_channel_pcm_enc_cfg_v2  *enc_cfg;
-	struct apr_pkt *pkt;
+	struct asm_multi_channel_pcm_enc_cfg_v5  *enc_cfg;
 	u8 *channel_mapping;
+	u8 ch_map_8[PCM_MAX_NUM_CHANNEL];
 	u32 frames_per_buf = 0;
-	int pkt_size = APR_HDR_SIZE + sizeof(*enc_cfg);
+	int pkt_size = sizeof(*enc_cfg);
 
 	void *p __free(kfree) = kzalloc(pkt_size, GFP_KERNEL);
 	if (!p)
 		return -ENOMEM;
 
-	pkt = p;
-	enc_cfg = p + APR_HDR_SIZE;
-	q6asm_add_hdr(ac, &pkt->hdr, pkt_size, true, stream_id);
+	enc_cfg = p;
+	q6asm_add_hdr(ac, &enc_cfg->hdr, pkt_size, true, stream_id);
 
-	pkt->hdr.opcode = ASM_STREAM_CMD_SET_ENCDEC_PARAM;
+	enc_cfg->hdr.opcode = ASM_STREAM_CMD_SET_ENCDEC_PARAM;
 	enc_cfg->encdec.param_id = ASM_PARAM_ID_ENCDEC_ENC_CFG_BLK_V2;
-	enc_cfg->encdec.param_size = sizeof(*enc_cfg) - sizeof(enc_cfg->encdec);
+	enc_cfg->encdec.param_size = sizeof(*enc_cfg) - sizeof(enc_cfg->hdr) -
+					sizeof(enc_cfg->encdec);
 	enc_cfg->encblk.frames_per_buf = frames_per_buf;
 	enc_cfg->encblk.enc_cfg_blk_size  = enc_cfg->encdec.param_size -
 					sizeof(struct asm_enc_cfg_blk_param_v2);
@@ -1378,12 +1458,17 @@ int q6asm_enc_cfg_blk_pcm_format_support(struct audio_client *ac,
 	enc_cfg->bits_per_sample = bits_per_sample;
 	enc_cfg->sample_rate = rate;
 	enc_cfg->is_signed = 1;
+	enc_cfg->sample_word_size = bits_per_sample;
+	enc_cfg->endianness = 0;
+	enc_cfg->mode = 0;
 	channel_mapping = enc_cfg->channel_mapping;
 
-	if (q6dsp_map_channels(channel_mapping, channels))
+	memset(channel_mapping, 0, 32);
+	if (q6dsp_map_channels(ch_map_8, channels))
 		return -EINVAL;
+	memcpy(channel_mapping, ch_map_8, PCM_MAX_NUM_CHANNEL);
 
-	return q6asm_ac_send_cmd_sync(ac, pkt);
+	return q6asm_ac_send_cmd_sync(ac, (struct apr_pkt *)enc_cfg);
 }
 EXPORT_SYMBOL_GPL(q6asm_enc_cfg_blk_pcm_format_support);
 
@@ -1471,7 +1556,7 @@ static int __q6asm_open_read(struct audio_client *ac, uint32_t stream_id,
 	switch (format) {
 	case FORMAT_LINEAR_PCM:
 		open->mode_flags |= 0x00;
-		open->enc_cfg_id = ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V2;
+		open->enc_cfg_id = ASM_MEDIA_FMT_MULTI_CHANNEL_PCM_V5;
 		break;
 	default:
 		pr_err("Invalid format[%d]\n", format);
@@ -1655,6 +1740,9 @@ static int q6asm_probe(struct apr_device *adev)
 		return -ENOMEM;
 
 	q6core_get_svc_api_info(adev->svc_id, &q6asm->ainfo);
+	dev_err(dev, "ASM svc_id %d api_version %u branch %u\n",
+		adev->svc_id, q6asm->ainfo.api_version,
+		q6asm->ainfo.api_branch_version);
 
 	q6asm->dev = dev;
 	q6asm->adev = adev;

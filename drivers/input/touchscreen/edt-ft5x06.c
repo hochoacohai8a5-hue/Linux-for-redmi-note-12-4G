@@ -838,14 +838,18 @@ static int edt_ft5x06_ts_identify(struct i2c_client *client,
 	char *model_name = tsdata->name;
 	char *fw_version = tsdata->fw_version;
 
+	dev_err(&client->dev, "name=%s, fw_version=%s\n", model_name, fw_version);
+
 	/* see what we find if we assume it is a M06 *
 	 * if we get less than EDT_NAME_LEN, we don't want
 	 * to have garbage in there
 	 */
 	memset(rdbuf, 0, sizeof(rdbuf));
 	error = regmap_bulk_read(tsdata->regmap, 0xBB, rdbuf, EDT_NAME_LEN - 1);
-	if (error)
+	if (error) {
+		dev_err(&client->dev, "error on regmap_bulk_read(tsdata->regmap, 0xBB, rdbuf, EDT_NAME_LEN - 1);\n");
 		return error;
+	}
 
 	/* Probe content for something consistent.
 	 * M06 starts with a response byte, M12 gives the data directly.
@@ -900,14 +904,18 @@ static int edt_ft5x06_ts_identify(struct i2c_client *client,
 		tsdata->version = GENERIC_FT;
 
 		error = regmap_bulk_read(tsdata->regmap, 0xA6, rdbuf, 2);
-		if (error)
+		if (error) {
+			dev_err(&client->dev, "error on regmap_bulk_read(tsdata->regmap, 0xA6, rdbuf, 2);\n");
 			return error;
+		}
 
 		strscpy(fw_version, rdbuf, 2);
 
 		error = regmap_bulk_read(tsdata->regmap, 0xA8, rdbuf, 1);
-		if (error)
+		if (error) {
+			dev_err(&client->dev, "error on regmap_bulk_read(tsdata->regmap, 0xA8, rdbuf, 1);\n");
 			return error;
+		}
 
 		/* This "model identification" is not exact. Unfortunately
 		 * not all firmwares for the ft5x06 put useful values in
