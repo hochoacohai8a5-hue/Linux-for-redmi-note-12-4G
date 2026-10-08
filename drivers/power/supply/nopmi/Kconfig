@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Xiaomi nopmi charger policy driver (No-PMI platforms, e.g. SM6225).
+# Aggregates the fuel gauge (bms) and the main buck into the
+# user-visible "battery"/"usb" power supplies and runs software JEITA,
+# thermal mitigation and divider-pump coordination on top of the
+# pmic-voter elections.
+
+config NOPMI_CHARGER
+	bool "Xiaomi nopmi charger policy driver"
+	select PMIC_VOTER
+	help
+	  Platform charger policy for Xiaomi No-PMI boards (Redmi Note 11
+	  spes family): registers the "battery" and "usb" power supplies,
+	  runs software JEITA temperature regulation, system thermal
+	  mitigation and CC-CV step charging on the bq buck + sc8551
+	  divider pump.

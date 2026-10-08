@@ -62,6 +62,16 @@ static const struct pll_vco zonda_vco[] = {
 	{ 595200000, 3600000000, 0 },
 };
 
+/* GPLL11 uses DEFAULT_EVO (taken from SM6115, the closest brother SoC)
+ * because the Lucid values ported from the 6.1-rc5 attempt never lock
+ * on 7.2.1 (gpll11 failed to enable -> venus probe -110).
+ * 600MHz configuration, same frequency as before so video_venus
+ * freq table (133/240/300/384MHz via div 4.5/2.5/2/2) is unchanged.
+ */
+static const struct pll_vco gpll11_evo_vco[] = {
+	{ 500000000, 1000000000, 2 },
+};
+
 static struct clk_alpha_pll gpll0 = {
 	.offset = 0x0,
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID],
@@ -148,24 +158,25 @@ static struct clk_alpha_pll gpll10 = {
 	},
 };
 
-/* 600MHz configuration */
+/* 600MHz configuration - taken from SM6115 (DEFAULT_EVO) */
 static const struct alpha_pll_config gpll11_config = {
 	.l = 0x1F,
-	.alpha = 0x4000,
-	.config_ctl_val = 0x20485699,
-	.config_ctl_hi_val = 0x00002261,
-	.config_ctl_hi1_val = 0x329A299C,
-	.user_ctl_val = 0x00000001,
-	.user_ctl_hi_val = 0x00000805,
-	.user_ctl_hi1_val = 0x00000000,
+	.alpha = 0x0,
+	.alpha_hi = 0x40,
+	.alpha_en_mask = BIT(24),
+	.vco_val = 0x2 << 20,
+	.vco_mask = GENMASK(21, 20),
+	.config_ctl_val = 0x4001055b,
+	.test_ctl_hi1_val = 0x1,
+	.test_ctl_hi_mask = 0x1,
 };
 
 static struct clk_alpha_pll gpll11 = {
 	.offset = 0xb000,
-	.vco_table = lucid_vco,
-	.num_vco = ARRAY_SIZE(lucid_vco),
-	.flags = SUPPORTS_DYNAMIC_UPDATE | SUPPORTS_FSM_LEGACY_MODE,
-	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID],
+	.vco_table = gpll11_evo_vco,
+	.num_vco = ARRAY_SIZE(gpll11_evo_vco),
+	.flags = SUPPORTS_DYNAMIC_UPDATE,
+	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT_EVO],
 	.clkr = {
 		.enable_reg = 0x79000,
 		.enable_mask = BIT(11),
@@ -175,7 +186,7 @@ static struct clk_alpha_pll gpll11 = {
 				.index = DT_BI_TCXO,
 			},
 			.num_parents = 1,
-			.ops = &clk_alpha_pll_lucid_ops,
+			.ops = &clk_alpha_pll_ops,
 		},
 	},
 };
@@ -246,7 +257,7 @@ static struct clk_alpha_pll gpll5 = {
 				.index = DT_BI_TCXO,
 			},
 			.num_parents = 1,
-			.ops = &clk_alpha_pll_ops,
+			.ops = &clk_alpha_pll_fixed_lucid_ops,
 		},
 	},
 };
@@ -477,7 +488,7 @@ static const struct parent_map gcc_parent_map_4[] = {
 static const struct clk_parent_data gcc_parents_4[] = {
 	{ .index = DT_BI_TCXO },
 	{ .hw = &gpll0.clkr.hw },
-	{ .hw = &gpll0.clkr.hw },
+	{ .hw = &gpll0_out_even.clkr.hw },
 	{ .hw = &gpll4.clkr.hw },
 	{ .hw = &gpll3_out_even.clkr.hw },
 };
@@ -1425,6 +1436,7 @@ static struct clk_regmap_div gcc_usb30_prim_mock_utmi_postdiv_clk_src = {
 		.parent_hws = (const struct clk_hw *[]) {
 			&gcc_usb30_prim_mock_utmi_clk_src.clkr.hw },
 		.num_parents = 1,
+		.flags = CLK_SET_RATE_PARENT,
 		.ops = &clk_regmap_div_ro_ops,
 	},
 };
@@ -3436,7 +3448,7 @@ static int gcc_sm6225_probe(struct platform_device *pdev)
 		return ret;
 
 	clk_lucid_pll_configure(&gpll10, regmap, &gpll10_config);
-	clk_lucid_pll_configure(&gpll11, regmap, &gpll11_config);
+	clk_alpha_pll_configure(&gpll11, regmap, &gpll11_config);
 	clk_lucid_pll_configure(&gpll8, regmap, &gpll8_config);
 	clk_zonda_pll_configure(&gpll9, regmap, &gpll9_config);
 

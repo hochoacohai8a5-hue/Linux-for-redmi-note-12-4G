@@ -1186,4 +1186,32 @@ config MACSMC_POWER
 
 	  Say Y or M here if you have an Apple Silicon based Mac.
 
+config FUEL_GAUGE_SM5602
+        tristate "SM5602 Fuel Gauge Driver"
+        depends on I2C
+        help
+          Say Y here to enable the SM5602 Fuel Gauge Driver.
+          The Fuel Gauge calculates and determines the battery state of charge
+          according to battery open circuit voltage.
+
+config CHARGER_SC8551
+        tristate "Southchip SC8551 divider charger"
+        depends on I2C
+        help
+          Say Y here to enable the Southchip SC8551 switched-capacitor
+          divider charger driver, used on Xiaomi SM6225 boards (spes
+          family) for high-power direct charging alongside the main
+          buck charger.
+
+source "drivers/power/supply/battery_secret/Kconfig"
+
+source "drivers/power/supply/nopmi/Kconfig"
+
+config PMIC_VOTER
+	bool
+	help
+	  Qualcomm pmic-voter election library (MIN/MAX/SET_ANY), used
+	  by the Xiaomi nopmi charger policy driver. Selected
+	  automatically, no prompt.
+
 endif # POWER_SUPPLY
