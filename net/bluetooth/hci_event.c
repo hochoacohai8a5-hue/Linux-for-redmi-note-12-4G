@@ -6196,6 +6196,11 @@ static void process_adv_report(struct hci_dev *hdev, u8 type, bdaddr_t *bdaddr,
 	case LE_ADV_NONCONN_IND:
 	case LE_ADV_SCAN_RSP:
 		break;
+	case LE_ADV_INVALID:
+		/* WCN3950 (FastConnect 6100) rampatch BTFM.CMC.1.3.0-00048
+		 * reports nearby extended advertisements as legacy type
+		 * 0x05. Already dropped below, just don't spam dmesg. */
+		return;
 	default:
 		bt_dev_err_ratelimited(hdev, "unknown advertising packet "
 				       "type: 0x%02x", type);

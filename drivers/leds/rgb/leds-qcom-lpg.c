@@ -1650,6 +1650,13 @@ static int lpg_probe(struct platform_device *pdev)
 	return lpg_add_pwm(lpg);
 }
 
+static const struct lpg_data pm6125_pwm_data = {
+        .num_channels = 1,
+        .channels = (const struct lpg_channel_data[]) {
+                { .base = 0xb300 },
+        },
+};
+
 static const struct lpg_data pm660l_lpg_data = {
 	.lut_base = 0xb000,
 	.lut_size = 49,
@@ -1821,6 +1828,7 @@ static const struct lpg_data pmk8550_pwm_data = {
 
 static const struct of_device_id lpg_of_table[] = {
 	{ .compatible = "qcom,pm660l-lpg", .data = &pm660l_lpg_data },
+	{ .compatible = "qcom,pm6125-pwm", .data = &pm6125_pwm_data },
 	{ .compatible = "qcom,pm8150b-lpg", .data = &pm8150b_lpg_data },
 	{ .compatible = "qcom,pm8150l-lpg", .data = &pm8150l_lpg_data },
 	{ .compatible = "qcom,pm8350c-pwm", .data = &pm8350c_pwm_data },

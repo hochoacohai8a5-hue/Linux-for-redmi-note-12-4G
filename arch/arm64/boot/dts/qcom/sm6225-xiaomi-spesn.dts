@@ -39,6 +39,24 @@
 		};
 	};
 
+	// vcc_vib: vibrator-regulator {
+	// 	compatible = "regulator-fixed";
+	// 	regulator-name = "vcc-vib";
+	// 	gpio = <&tlmm 36 GPIO_ACTIVE_HIGH>;
+	// 	enable-active-high;
+	// };
+
+	vibrator {
+		compatible = "pwm-vibrator";
+		pwms = <&pm6125_pwm 0 1000000>;
+		pwm-names = "enable";
+		// vcc-supply = <&vcc_vib>;
+		enable-gpios = <&tlmm 36 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&pwm_out_default>;
+		pinctrl-names = "default";
+		status = "okay";
+	};
+
 	/* Xiaomi battery authentication over bit-banged 1-wire (gpio108).
 	 * Ported from downstream spesn.dtsi. */
 	onewire_gpio: onewire-gpio {
@@ -638,6 +656,14 @@
 };
 
 &tlmm {
+	vibrator_enable_default: vibrator-enable-default-state {
+		pins = "gpio36";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
+
 	rt1711h_int_n: rt1711h-int-n-state {
 		pins = "gpio93";
 		function = "gpio";
@@ -1197,6 +1223,16 @@
 		input-enable;
 	};
 
+	pwm_out_default: pwm-out-default {
+		bias-disable;
+		drive-push-pull;
+		function = "func1";
+		output-low;
+		pins = "gpio8";
+		power-source = <0x00>;
+		qcom,drive-strength = <0x03>;
+	};
+
 	disp_bias_en_default: disp-bias-en-default-state {
 		pins = "gpio9";
 		function = "normal";
@@ -1215,6 +1251,10 @@
 
 &pon_resin {
 	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
+};
+
+&pm6125_pwm {
 	status = "okay";
 };
 
@@ -1316,12 +1356,13 @@
 	status = "okay";
 
 	bluetooth {
-		compatible = "qcom,wcn3990-bt";
+		compatible = "qcom,wcn3950-bt";
 
 		vddio-supply = <&pm6125_l9>;
 		vddxo-supply = <&pm6125_l16>;
 		vddrf-supply = <&pm6125_l17>;
 		vddch0-supply = <&pm6125_l23>;
+		max-speed = <3200000>;
 	};
 };
 
