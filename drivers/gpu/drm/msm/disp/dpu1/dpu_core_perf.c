@@ -397,6 +397,10 @@ int dpu_core_perf_crtc_update(struct drm_crtc *crtc,
 
 		trace_dpu_core_perf_update_clk(kms->dev, !crtc->enabled, clk_rate);
 
+                /* If we're going offline, PM callbacks will disable the clocks instead */
+                if (!clk_rate)
+                        return 0;
+
 		clk_rate = min(clk_rate, kms->perf.max_core_clk_rate);
 		/*
 		 * Display bandwidth produces a calculated rate, while the DT

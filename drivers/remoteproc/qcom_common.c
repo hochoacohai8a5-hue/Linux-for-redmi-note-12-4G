@@ -258,7 +258,7 @@ void qcom_add_glink_subdev(struct rproc *rproc, struct qcom_rproc_glink *glink,
 
 	glink->ssr_name = kstrdup_const(ssr_name, GFP_KERNEL);
 	if (!glink->ssr_name) {
-		pr_err("return on (!glink->ssr_name)");
+		of_node_put(glink->node);
 		return;
 	}
 
