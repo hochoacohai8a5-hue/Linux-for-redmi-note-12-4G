@@ -20,6 +20,7 @@
 #include "clk-regmap-divider.h"
 #include "common.h"
 #include "gdsc.h"
+#include "reset.h"
 
 enum {
 	DT_BI_TCXO,
@@ -525,10 +526,17 @@ static const struct regmap_config disp_cc_sm6225_regmap_config = {
 	.fast_io = true,
 };
 
+static const struct qcom_reset_map disp_cc_sm6225_resets[] = {
+	[DISP_CC_MDSS_CORE_BCR] = { 0x1000 },
+	[DISP_CC_MDSS_RSCC_BCR] = { 0x2000 },
+};
+
 static const struct qcom_cc_desc disp_cc_sm6225_desc = {
 	.config = &disp_cc_sm6225_regmap_config,
 	.clks = disp_cc_sm6225_clocks,
 	.num_clks = ARRAY_SIZE(disp_cc_sm6225_clocks),
+	.resets = disp_cc_sm6225_resets,
+	.num_resets = ARRAY_SIZE(disp_cc_sm6225_resets),
 	.gdscs = disp_cc_sm6225_gdscs,
 	.num_gdscs = ARRAY_SIZE(disp_cc_sm6225_gdscs),
 };
