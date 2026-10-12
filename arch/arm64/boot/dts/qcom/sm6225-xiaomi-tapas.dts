@@ -592,12 +592,18 @@
 	status = "okay";
 
 	bluetooth {
-		compatible = "qcom,wcn3990-bt";
+		compatible = "qcom,wcn3950-bt";
+
 		vddio-supply = <&pm6125_l9>;
 		vddxo-supply = <&pm6125_l16>;
 		vddrf-supply = <&pm6125_l17>;
 		vddch0-supply = <&pm6125_l23>;
+		max-speed = <3200000>;
 	};
+};
+
+&venus {
+	status = "okay";
 };
 
 &xo_board {
