@@ -20,7 +20,7 @@
 	qcom,board-id = <0x20022 0>;
 
 	aliases {
-		serial1 = &uart3;
+		serial0 = &uart3;
 	};
 
 	gpio-keys {
@@ -330,6 +330,10 @@
 	status = "okay";
 };
 
+&venus {
+	status = "okay";
+};
+
 &rpm_requests {
 	regulators-0 {
 		compatible = "qcom,rpm-pm6125-regulators";
@@ -602,15 +606,10 @@
 	};
 };
 
-&venus {
-	status = "okay";
-};
-
 &xo_board {
 	clock-frequency = <19200000>;
 };
 
-/* Focaltech FT3519T (live 1-0038, chip 0x5452); stock overlay #03 mirror */
 &qupv3_id_0 {
 	status = "okay";
 };
