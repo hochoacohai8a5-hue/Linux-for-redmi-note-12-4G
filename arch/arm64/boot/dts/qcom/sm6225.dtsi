@@ -3514,14 +3514,14 @@
 			#size-cells = <0>;
 			status = "disabled";
 
-			i2c-bus@0 {
+			cci_i2c0: i2c-bus@0 {
 				reg = <0>;
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
 			};
 
-			i2c-bus@1 {
+			cci_i2c1: i2c-bus@1 {
 				reg = <1>;
 				clock-frequency = <100000>;
 				#address-cells = <1>;
@@ -3612,12 +3612,31 @@
 				 <&apps_smmu 0x820 0x0>,
 				 <&apps_smmu 0x840 0x0>;
 
-			power-domains = <&gcc GCC_CAMSS_TOP_GDSC>;
+			/* NOTE: TITAN_TOP GDSC must stay last: the driver
+			 * attaches it by legacy index (genpd_num - 1). */
+			power-domains = <&rpmpd SM6115_VDDMX>, <&rpmpd SM6115_VDDCX>, <&gcc GCC_CAMSS_TOP_GDSC>;
+			power-domain-names = "mx", "cx", "top";
+			operating-points-v2 = <&camss_opp_table>;
 
 			vdd-csiphy-1p2-supply = <&pm6125_l4>;
 			vdd-csiphy-1p8-supply = <&pm6125_l18>;
 
 			status = "disabled";
+
+			camss_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				/* Rails need is rate-independent (GPLL10 is fixed
+				 * at 1152 MHz and needs MX above its LOW corner;
+				 * TFE logic needs CX at LOW_L1 for top rates):
+				 * single flat entry. LOW_L1 ~= SVS_PLUS per
+				 * the venus OPP mapping precedent; refine
+				 * per-rate if DVFS is ever needed. */
+				opp-460800000 {
+					opp-hz = /bits/ 64 <460800000>;
+					required-opps = <&rpmpd_opp_svs_plus>, <&rpmpd_opp_svs_plus>;
+				};
+			};
 
 			ports {
 				#address-cells = <1>;

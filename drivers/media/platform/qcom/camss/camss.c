@@ -8,6 +8,7 @@
  * Copyright (C) 2015-2018 Linaro Ltd.
  */
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include <linux/interconnect.h>
 #include <linux/media-bus-format.h>
 #include <linux/media.h>
@@ -18,6 +19,7 @@
 #include <linux/of_graph.h>
 #include <linux/pm_runtime.h>
 #include <linux/pm_domain.h>
+#include <linux/pm_opp.h>
 #include <linux/slab.h>
 #include <linux/videodev2.h>
 
@@ -5538,6 +5540,61 @@ static void camss_genpd_cleanup(struct camss *camss)
 	dev_pm_domain_detach(camss->genpd, true);
 }
 
+static const char * const camss_opp_pd_names[] = { "mx", "cx" };
+
+/* Highest TFE rate the VFE tables can request. The vote is flat (not
+ * per-rate): GPLL10 is fixed at 1152 MHz and needs MX above its LOW
+ * corner whenever camera is active, and the TFE RCG logic needs CX at
+ * LOW_L1 for top rates (per the vendor corner tables) while nothing
+ * else votes either rail for camera on this platform. */
+#define CAMSS_OPP_VOTE_HZ 460800000
+
+/*
+ * camss_opp_init - Attach the MX/CX power domains and OPP table
+ *
+ * The TFE RCGs are fed by GPLL10, whose VCO needs the MX rail above
+ * its LOW corner (vendor: LOW_L1 for 1152 MHz), and the TFE RCG logic
+ * itself needs CX at LOW_L1 for top rates. Downstream votes per-rate
+ * corners (svs/svs_l1/turbo) for this block; nothing votes either rail
+ * in mainline, so do it here via the OPP framework, modeled on the
+ * venus CX handling. A DT without the domains/table is not fatal: we
+ * warn once and run as before (rails unvoted).
+ */
+static int camss_opp_init(struct camss *camss)
+{
+	struct device *dev = camss->dev;
+	struct dev_pm_domain_attach_data opp_data = {
+		.pd_names = camss_opp_pd_names,
+		.num_pd_names = ARRAY_SIZE(camss_opp_pd_names),
+		.pd_flags = PD_FLAG_DEV_LINK_ON | PD_FLAG_REQUIRED_OPP,
+	};
+	int ret;
+
+	ret = devm_pm_opp_set_clkname(dev, "vfe0");
+	if (ret)
+		return ret;
+
+	ret = devm_pm_domain_attach_list(dev, &opp_data, &camss->opp_pmdomain);
+	if (ret) {
+		if (ret == -ENODEV)
+			dev_warn(dev, "mx/cx power domains missing, rails will not be voted\n");
+		return ret == -ENODEV ? 0 : ret;
+	}
+
+	ret = devm_pm_opp_of_add_table(dev);
+	if (ret) {
+		if (ret == -ENODEV)
+			dev_warn(dev, "no OPP table, rails will not be voted\n");
+		else
+			dev_err(dev, "invalid OPP table in device tree\n");
+		return ret == -ENODEV ? 0 : ret;
+	}
+
+	camss->opp_ready = true;
+
+	return 0;
+}
+
 /*
  * camss_probe - Probe CAMSS platform device
  * @pdev: Pointer to CAMSS platform device
@@ -5600,6 +5657,10 @@ static int camss_probe(struct platform_device *pdev)
 		dev_err(dev, "Failed to configure power domains: %d\n", ret);
 		return ret;
 	}
+
+	ret = camss_opp_init(camss);
+	if (ret < 0)
+		goto err_genpd_cleanup;
 
 	ret = camss_init_subdevices(camss);
 	if (ret < 0)
@@ -5974,6 +6035,9 @@ static int __maybe_unused camss_runtime_suspend(struct device *dev)
 	int i;
 	int ret;
 
+	if (camss->opp_ready)
+		dev_pm_opp_set_rate(dev, 0);
+
 	for (i = 0; i < camss->res->icc_path_num; i++) {
 		ret = icc_set_bw(camss->icc_path[i], 0, 0);
 		if (ret)
@@ -5989,6 +6053,22 @@ static int __maybe_unused camss_runtime_resume(struct device *dev)
 	const struct resources_icc *icc_res = camss->res->icc_res;
 	int i;
 	int ret;
+
+	/* Vote rails before touching clocks: GPLL10's VCO needs MX above
+	 * its LOW corner (and the TFE logic needs CX) and nothing else
+	 * votes either for camera on this platform. */
+	if (camss->opp_ready) {
+		ret = dev_pm_opp_set_rate(dev, CAMSS_OPP_VOTE_HZ);
+		if (ret) {
+			dev_err(dev, "failed to vote CX/MX performance state: %d\n", ret);
+			return ret;
+		}
+		/* Let the rails and GPLL10 settle before the first lock /
+		 * update attempt below: the RPM round-trip + PMIC ramp
+		 * would otherwise race the PLL lock poll, failing the
+		 * first streamon per boot with -EBUSY/-ETIMEDOUT. */
+		usleep_range(1000, 2000);
+	}
 
 	for (i = 0; i < camss->res->icc_path_num; i++) {
 		ret = icc_set_bw(camss->icc_path[i],

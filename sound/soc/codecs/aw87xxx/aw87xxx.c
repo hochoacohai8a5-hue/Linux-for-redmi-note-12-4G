@@ -1398,9 +1398,13 @@ static int aw87xxx_aux_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
+		if (aw87xxx->acf_info.prof_info.status == AW_ACF_WAIT)
+			return 0;
 		ret = aw87xxx_set_profile(aw87xxx->dev_index, "Music");
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
+		if (aw87xxx->acf_info.prof_info.status == AW_ACF_WAIT)
+			return 0;
 		ret = aw87xxx_set_profile(aw87xxx->dev_index, "Off");
 		break;
 	default:
@@ -1413,10 +1417,9 @@ static int aw87xxx_aux_event(struct snd_soc_dapm_widget *w,
 
 static const struct snd_soc_dapm_widget aw87xxx_aux_widgets[] = {
 	SND_SOC_DAPM_INPUT("IN"),
-	SND_SOC_DAPM_PGA_E("SPK PA", SND_SOC_NOPM, 0, 0, NULL, 0,
-			   aw87xxx_aux_event,
-			   SND_SOC_DAPM_POST_PMU |
-			   SND_SOC_DAPM_PRE_PMD),
+	SND_SOC_DAPM_OUT_DRV_E("SPK PA", SND_SOC_NOPM, 0, 0, NULL, 0,
+			       aw87xxx_aux_event,
+			       SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 	SND_SOC_DAPM_OUTPUT("OUT"),
 };
 
