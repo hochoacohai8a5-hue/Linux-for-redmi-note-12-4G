@@ -17,7 +17,7 @@
 #include <drm/drm_panel.h>
 #include <drm/drm_probe_helper.h>
 
-struct samsung_s6e3fc_unknown {
+struct xiaomi_38_0c {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi;
 	struct drm_dsc_config dsc;
@@ -27,12 +27,12 @@ struct samsung_s6e3fc_unknown {
 };
 
 static inline
-struct samsung_s6e3fc_unknown *to_samsung_s6e3fc_unknown(struct drm_panel *panel)
+struct xiaomi_38_0c *to_xiaomi_38_0c(struct drm_panel *panel)
 {
-	return container_of_const(panel, struct samsung_s6e3fc_unknown, panel);
+	return container_of_const(panel, struct xiaomi_38_0c, panel);
 }
 
-static void samsung_s6e3fc_unknown_reset(struct samsung_s6e3fc_unknown *ctx)
+static void xiaomi_38_0c_reset(struct xiaomi_38_0c *ctx)
 {
 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
 	usleep_range(10000, 11000);
@@ -42,7 +42,7 @@ static void samsung_s6e3fc_unknown_reset(struct samsung_s6e3fc_unknown *ctx)
 	usleep_range(10000, 11000);
 }
 
-static int samsung_s6e3fc_unknown_on(struct samsung_s6e3fc_unknown *ctx)
+static int xiaomi_38_0c_on(struct xiaomi_38_0c *ctx)
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
 
@@ -113,7 +113,7 @@ static int samsung_s6e3fc_unknown_on(struct samsung_s6e3fc_unknown *ctx)
 	return dsi_ctx.accum_err;
 }
 
-static int samsung_s6e3fc_unknown_off(struct samsung_s6e3fc_unknown *ctx)
+static int xiaomi_38_0c_off(struct xiaomi_38_0c *ctx)
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
 
@@ -125,9 +125,9 @@ static int samsung_s6e3fc_unknown_off(struct samsung_s6e3fc_unknown *ctx)
 	return dsi_ctx.accum_err;
 }
 
-static int samsung_s6e3fc_unknown_prepare(struct drm_panel *panel)
+static int xiaomi_38_0c_prepare(struct drm_panel *panel)
 {
-	struct samsung_s6e3fc_unknown *ctx = to_samsung_s6e3fc_unknown(panel);
+	struct xiaomi_38_0c *ctx = to_xiaomi_38_0c(panel);
 	struct device *dev = &ctx->dsi->dev;
 	struct drm_dsc_picture_parameter_set pps;
 	int ret;
@@ -143,9 +143,9 @@ static int samsung_s6e3fc_unknown_prepare(struct drm_panel *panel)
 		return ret;
 	}
 
-	samsung_s6e3fc_unknown_reset(ctx);
+	xiaomi_38_0c_reset(ctx);
 
-	ret = samsung_s6e3fc_unknown_on(ctx);
+	ret = xiaomi_38_0c_on(ctx);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize panel: %d\n", ret);
 		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
@@ -172,13 +172,13 @@ static int samsung_s6e3fc_unknown_prepare(struct drm_panel *panel)
 	return 0;
 }
 
-static int samsung_s6e3fc_unknown_unprepare(struct drm_panel *panel)
+static int xiaomi_38_0c_unprepare(struct drm_panel *panel)
 {
-	struct samsung_s6e3fc_unknown *ctx = to_samsung_s6e3fc_unknown(panel);
+	struct xiaomi_38_0c *ctx = to_xiaomi_38_0c(panel);
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
 
-	ret = samsung_s6e3fc_unknown_off(ctx);
+	ret = xiaomi_38_0c_off(ctx);
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
@@ -188,7 +188,7 @@ static int samsung_s6e3fc_unknown_unprepare(struct drm_panel *panel)
 	return 0;
 }
 
-static const struct drm_display_mode samsung_s6e3fc_unknown_mode = {
+static const struct drm_display_mode xiaomi_38_0c_mode = {
 	.clock = (1080 + 320 + 32 + 120) * (2400 + 20 + 2 + 10) * 90 / 1000,
 	.hdisplay = 1080,
 	.hsync_start = 1080 + 320,
@@ -203,19 +203,19 @@ static const struct drm_display_mode samsung_s6e3fc_unknown_mode = {
 	.type = DRM_MODE_TYPE_DRIVER,
 };
 
-static int samsung_s6e3fc_unknown_get_modes(struct drm_panel *panel,
+static int xiaomi_38_0c_get_modes(struct drm_panel *panel,
 					struct drm_connector *connector)
 {
-	return drm_connector_helper_get_modes_fixed(connector, &samsung_s6e3fc_unknown_mode);
+	return drm_connector_helper_get_modes_fixed(connector, &xiaomi_38_0c_mode);
 }
 
-static const struct drm_panel_funcs samsung_s6e3fc_unknown_panel_funcs = {
-	.prepare = samsung_s6e3fc_unknown_prepare,
-	.unprepare = samsung_s6e3fc_unknown_unprepare,
-	.get_modes = samsung_s6e3fc_unknown_get_modes,
+static const struct drm_panel_funcs xiaomi_38_0c_panel_funcs = {
+	.prepare = xiaomi_38_0c_prepare,
+	.unprepare = xiaomi_38_0c_unprepare,
+	.get_modes = xiaomi_38_0c_get_modes,
 };
 
-static int samsung_s6e3fc_unknown_bl_update_status(struct backlight_device *bl)
+static int xiaomi_38_0c_bl_update_status(struct backlight_device *bl)
 {
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
 	u16 brightness = backlight_get_brightness(bl);
@@ -234,7 +234,7 @@ static int samsung_s6e3fc_unknown_bl_update_status(struct backlight_device *bl)
 
 // TODO: Check if /sys/class/backlight/.../actual_brightness actually returns
 // correct values. If not, remove this function.
-static int samsung_s6e3fc_unknown_bl_get_brightness(struct backlight_device *bl)
+static int xiaomi_38_0c_bl_get_brightness(struct backlight_device *bl)
 {
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
 	u16 brightness;
@@ -251,13 +251,13 @@ static int samsung_s6e3fc_unknown_bl_get_brightness(struct backlight_device *bl)
 	return brightness;
 }
 
-static const struct backlight_ops samsung_s6e3fc_unknown_bl_ops = {
-	.update_status = samsung_s6e3fc_unknown_bl_update_status,
-	.get_brightness = samsung_s6e3fc_unknown_bl_get_brightness,
+static const struct backlight_ops xiaomi_38_0c_bl_ops = {
+	.update_status = xiaomi_38_0c_bl_update_status,
+	.get_brightness = xiaomi_38_0c_bl_get_brightness,
 };
 
 static struct backlight_device *
-samsung_s6e3fc_unknown_create_backlight(struct mipi_dsi_device *dsi)
+xiaomi_38_0c_create_backlight(struct mipi_dsi_device *dsi)
 {
 	struct device *dev = &dsi->dev;
 	const struct backlight_properties props = {
@@ -267,17 +267,17 @@ samsung_s6e3fc_unknown_create_backlight(struct mipi_dsi_device *dsi)
 	};
 
 	return devm_backlight_device_register(dev, dev_name(dev), dev, dsi,
-					      &samsung_s6e3fc_unknown_bl_ops, &props);
+					      &xiaomi_38_0c_bl_ops, &props);
 }
 
-static int samsung_s6e3fc_unknown_probe(struct mipi_dsi_device *dsi)
+static int xiaomi_38_0c_probe(struct mipi_dsi_device *dsi)
 {
 	struct device *dev = &dsi->dev;
-	struct samsung_s6e3fc_unknown *ctx;
+	struct xiaomi_38_0c *ctx;
 	int ret;
 
-	ctx = devm_drm_panel_alloc(dev, struct samsung_s6e3fc_unknown, panel,
-				   &samsung_s6e3fc_unknown_panel_funcs,
+	ctx = devm_drm_panel_alloc(dev, struct xiaomi_38_0c, panel,
+				   &xiaomi_38_0c_panel_funcs,
 				   DRM_MODE_CONNECTOR_DSI);
 	if (IS_ERR(ctx))
 		return PTR_ERR(ctx);
@@ -307,7 +307,7 @@ static int samsung_s6e3fc_unknown_probe(struct mipi_dsi_device *dsi)
 
 	ctx->panel.prepare_prev_first = true;
 
-	ctx->panel.backlight = samsung_s6e3fc_unknown_create_backlight(dsi);
+	ctx->panel.backlight = xiaomi_38_0c_create_backlight(dsi);
 	if (IS_ERR(ctx->panel.backlight))
 		return dev_err_probe(dev, PTR_ERR(ctx->panel.backlight),
 				     "Failed to create backlight\n");
@@ -342,9 +342,9 @@ static int samsung_s6e3fc_unknown_probe(struct mipi_dsi_device *dsi)
 	return 0;
 }
 
-static void samsung_s6e3fc_unknown_remove(struct mipi_dsi_device *dsi)
+static void xiaomi_38_0c_remove(struct mipi_dsi_device *dsi)
 {
-	struct samsung_s6e3fc_unknown *ctx = mipi_dsi_get_drvdata(dsi);
+	struct xiaomi_38_0c *ctx = mipi_dsi_get_drvdata(dsi);
 	int ret;
 
 	ret = mipi_dsi_detach(dsi);
@@ -354,22 +354,23 @@ static void samsung_s6e3fc_unknown_remove(struct mipi_dsi_device *dsi)
 	drm_panel_remove(&ctx->panel);
 }
 
-static const struct of_device_id samsung_s6e3fc_unknown_of_match[] = {
-	{ .compatible = "samsung,s6e3fc-unknown" },
+static const struct of_device_id xiaomi_38_0c_of_match[] = {
+	{ .compatible = "xiaomi,38-0c" },
+	{ .compatible = "samsung,s6e3fc-unknown" }, // Kept for compatibility
 	{ /* sentinel */ }
 };
-MODULE_DEVICE_TABLE(of, samsung_s6e3fc_unknown_of_match);
+MODULE_DEVICE_TABLE(of, xiaomi_38_0c_of_match);
 
-static struct mipi_dsi_driver samsung_s6e3fc_unknown_driver = {
-	.probe = samsung_s6e3fc_unknown_probe,
-	.remove = samsung_s6e3fc_unknown_remove,
+static struct mipi_dsi_driver xiaomi_38_0c_driver = {
+	.probe = xiaomi_38_0c_probe,
+	.remove = xiaomi_38_0c_remove,
 	.driver = {
-		.name = "panel-samsung-s6e3fc-unknown",
-		.of_match_table = samsung_s6e3fc_unknown_of_match,
+		.name = "panel-xiaomi-38-0c",
+		.of_match_table = xiaomi_38_0c_of_match,
 	},
 };
-module_mipi_dsi_driver(samsung_s6e3fc_unknown_driver);
+module_mipi_dsi_driver(xiaomi_38_0c_driver);
 
 MODULE_AUTHOR("SCOS100 <hsc100zz@gmail.com>");
-MODULE_DESCRIPTION("DRM driver for s6e3fc unknown video mode fhdp dsi panel");
+MODULE_DESCRIPTION("DRM driver for 38 0c video mode fhdp dsi panel");
 MODULE_LICENSE("GPL");

@@ -427,13 +427,11 @@ static void dsi_pll_enable_pll_bias(struct dsi_pll_7nm *pll)
 	u32 data;
 
 	spin_lock_irqsave(&pll->pll_enable_lock, flags);
-        pll->pll_enable_cnt++;
-        WARN_ON(pll->pll_enable_cnt == INT_MAX);
-        if (pll->pll_enable_cnt++) {
-                spin_unlock_irqrestore(&pll->pll_enable_lock, flags);
-                WARN_ON(pll->pll_enable_cnt == INT_MAX);
-                return;
-        }
+	if (pll->pll_enable_cnt++) {
+		spin_unlock_irqrestore(&pll->pll_enable_lock, flags);
+		WARN_ON(pll->pll_enable_cnt == INT_MAX);
+		return;
+	}
 
 	data = readl(pll->phy->base + REG_DSI_7nm_PHY_CMN_CTRL_0);
 	data |= DSI_7nm_PHY_CMN_CTRL_0_DIGTOP_PWRDN_B |

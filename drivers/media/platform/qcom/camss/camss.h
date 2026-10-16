@@ -11,6 +11,7 @@
 #define QC_MSM_CAMSS_H
 
 #include <linux/device.h>
+#include <linux/pm_domain.h>
 #include <linux/types.h>
 #include <media/v4l2-async.h>
 #include <media/v4l2-device.h>
@@ -136,6 +137,8 @@ struct camss {
 	int genpd_num;
 	struct device *genpd;
 	struct device_link *genpd_link;
+	bool opp_ready;
+	struct dev_pm_domain_list *opp_pmdomain;
 	struct icc_path *icc_path[ICC_SM8250_COUNT];
 	const struct camss_resources *res;
 };

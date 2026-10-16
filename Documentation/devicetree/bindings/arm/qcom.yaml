@@ -1025,6 +1025,13 @@ properties:
           - const: qcom,sm6125
 
       - items:
+         - enum:
+             - xiaomi,spes
+             - xiaomi,spesn
+             - xiaomi,spes-sm5602
+         - const: qcom,sm6225
+
+      - items:
           - enum:
               - sony,pdx213
           - const: qcom,sm6350
@@ -1303,6 +1310,7 @@ allOf:
               - qcom,sm4250
               - qcom,sm6115
               - qcom,sm6125
+              - qcom,sm6225
               - qcom,sm6350
               - qcom,sm7125
               - qcom,sm7225

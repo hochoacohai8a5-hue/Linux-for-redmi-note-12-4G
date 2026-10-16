@@ -62,14 +62,18 @@ static const struct pll_vco zonda_vco[] = {
 	{ 595200000, 3600000000, 0 },
 };
 
-/* GPLL11 uses DEFAULT_EVO (taken from SM6115, the closest brother SoC)
- * because the Lucid values ported from the 6.1-rc5 attempt never lock
- * on 7.2.1 (gpll11 failed to enable -> venus probe -110).
- * 600MHz configuration, same frequency as before so video_venus
- * freq table (133/240/300/384MHz via div 4.5/2.5/2/2) is unchanged.
+/* GPLL10/11 use DEFAULT_EVO (taken from SM6115, the closest brother SoC).
+ * Field-tested: with Lucid both PLLs time out in wait_for_pll (-110, and
+ * the RCG then hangs with -16); with EVO they enable silently, including
+ * with the MX vote active. Frequencies unchanged (1152/600MHz) so RCG
+ * freq tables are unchanged.
  */
 static const struct pll_vco gpll11_evo_vco[] = {
 	{ 500000000, 1000000000, 2 },
+};
+
+static const struct pll_vco gpll10_evo_vco[] = {
+	{ 750000000, 1500000000, 1 },
 };
 
 static struct clk_alpha_pll gpll0 = {
@@ -126,24 +130,22 @@ static struct clk_alpha_pll gpll1 = {
 	},
 };
 
-/* 1152MHz configuration */
+/* 1152MHz configuration - taken from SM6115 (DEFAULT_EVO) */
 static const struct alpha_pll_config gpll10_config = {
-	.l = 0x3C,
-	.alpha = 0x0,
-	.config_ctl_val = 0x20485699,
-	.config_ctl_hi_val = 0x00002261,
-	.config_ctl_hi1_val = 0x329A299C,
-	.user_ctl_val = 0x00000001,
-	.user_ctl_hi_val = 0x00000805,
-	.user_ctl_hi1_val = 0x00000000,
+	.l = 0x3c,
+	.vco_val = 0x1 << 20,
+	.vco_mask = GENMASK(21, 20),
+	.main_output_mask = BIT(0),
+	.config_ctl_val = 0x4001055b,
+	.test_ctl_hi_val = 0x1,
+	.test_ctl_hi_mask = 0x1,
 };
 
 static struct clk_alpha_pll gpll10 = {
 	.offset = 0xa000,
-	.vco_table = lucid_vco,
-	.num_vco = ARRAY_SIZE(lucid_vco),
-	.flags = SUPPORTS_FSM_LEGACY_MODE,
-	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID],
+	.vco_table = gpll10_evo_vco,
+	.num_vco = ARRAY_SIZE(gpll10_evo_vco),
+	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_DEFAULT_EVO],
 	.clkr = {
 		.enable_reg = 0x79000,
 		.enable_mask = BIT(10),
@@ -153,7 +155,11 @@ static struct clk_alpha_pll gpll10 = {
 				.index = DT_BI_TCXO,
 			},
 			.num_parents = 1,
-			.ops = &clk_alpha_pll_lucid_ops,
+			/* DIAGNOSTIC ONLY, TODO remove: pin the PLL on from
+			 * registration so the RCG always has a live parent.
+			 * NOTE: init flags, not the PLL .flags above. */
+			.flags = CLK_IS_CRITICAL,
+			.ops = &clk_alpha_pll_ops,
 		},
 	},
 };
@@ -167,7 +173,7 @@ static const struct alpha_pll_config gpll11_config = {
 	.vco_val = 0x2 << 20,
 	.vco_mask = GENMASK(21, 20),
 	.config_ctl_val = 0x4001055b,
-	.test_ctl_hi1_val = 0x1,
+	.test_ctl_hi_val = 0x1,
 	.test_ctl_hi_mask = 0x1,
 };
 
@@ -911,7 +917,13 @@ static struct clk_rcg2 gcc_camss_tfe_0_clk_src = {
 		.name = "gcc_camss_tfe_0_clk_src",
 		.parent_data = gcc_parents_5,
 		.num_parents = ARRAY_SIZE(gcc_parents_5),
-		.ops = &clk_rcg2_shared_ops,
+		/* FIXME revisit: shared_init parking at GCC probe can wedge
+		 * CMD_UPDATE if the bootloader left this RCG on a dark
+		 * parent (bit is sticky, survives warm reboot: use
+		 * no_init_park to never touch it at probe, cf. upstream
+		 * 7b6dfa1 for the same class on sm8550 USB). */
+		.flags = CLK_SET_RATE_PARENT,
+		.ops = &clk_rcg2_shared_no_init_park_ops,
 	},
 };
 
@@ -948,7 +960,8 @@ static struct clk_rcg2 gcc_camss_tfe_1_clk_src = {
 		.name = "gcc_camss_tfe_1_clk_src",
 		.parent_data = gcc_parents_5,
 		.num_parents = ARRAY_SIZE(gcc_parents_5),
-		.ops = &clk_rcg2_shared_ops,
+		.flags = CLK_SET_RATE_PARENT,
+		.ops = &clk_rcg2_shared_no_init_park_ops,
 	},
 };
 
@@ -976,7 +989,8 @@ static struct clk_rcg2 gcc_camss_tfe_2_clk_src = {
 		.name = "gcc_camss_tfe_2_clk_src",
 		.parent_data = gcc_parents_5,
 		.num_parents = ARRAY_SIZE(gcc_parents_5),
-		.ops = &clk_rcg2_shared_ops,
+		.flags = CLK_SET_RATE_PARENT,
+		.ops = &clk_rcg2_shared_no_init_park_ops,
 	},
 };
 
@@ -3447,7 +3461,7 @@ static int gcc_sm6225_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	clk_lucid_pll_configure(&gpll10, regmap, &gpll10_config);
+	clk_alpha_pll_configure(&gpll10, regmap, &gpll10_config);
 	clk_alpha_pll_configure(&gpll11, regmap, &gpll11_config);
 	clk_lucid_pll_configure(&gpll8, regmap, &gpll8_config);
 	clk_zonda_pll_configure(&gpll9, regmap, &gpll9_config);

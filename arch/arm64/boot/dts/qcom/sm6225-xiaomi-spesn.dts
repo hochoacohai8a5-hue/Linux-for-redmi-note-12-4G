@@ -39,18 +39,10 @@
 		};
 	};
 
-	// vcc_vib: vibrator-regulator {
-	// 	compatible = "regulator-fixed";
-	// 	regulator-name = "vcc-vib";
-	// 	gpio = <&tlmm 36 GPIO_ACTIVE_HIGH>;
-	// 	enable-active-high;
-	// };
-
 	vibrator {
 		compatible = "pwm-vibrator";
 		pwms = <&pm6125_pwm 0 1000000>;
 		pwm-names = "enable";
-		// vcc-supply = <&vcc_vib>;
 		enable-gpios = <&tlmm 36 GPIO_ACTIVE_HIGH>;
 		pinctrl-0 = <&pwm_out_default>;
 		pinctrl-names = "default";
@@ -183,8 +175,8 @@
 				"TX SWR_INPUT0", "ADC1_OUTPUT",
 				"TX SWR_INPUT4", "ADC2_OUTPUT",
 
-				"SpkrLeft IN", "AUX",
-				"SpkrRight IN", "AUX";
+				"SpkrLeft IN", "AUX PGA",
+				"SpkrRight IN", "EAR PGA";
 
 		aux-devs = <&left_spkr &right_spkr>;
 
@@ -278,6 +270,146 @@
 		};
 	};
 };
+
+/* Start Fallback Clocks */
+/* For anyone reading this, please don't waste much time on this:
+ * 	I do not know of a simple solution to the clock problems,
+ * 	and manually adjusting them like this seems to fix the issue,
+ * 	so don't touch these unless you plan on adding more.
+ */
+&soc {
+	cam_sensor_tfe_cphy_rx_clock_source: regulator-cam-sensor-tfe-cphy-rx-clock-source {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_tfe_cphy_rx_clock_source";
+		regulator-always-on;
+		clocks = <&gcc GCC_CAMSS_TFE_CPHY_RX_CLK_SRC>;
+		clock-names = "tfe_cphy_rx_clk_src";
+		assigned-clocks = <&gcc GCC_CAMSS_TFE_CPHY_RX_CLK_SRC>;
+		assigned-clock-rates = <0xf424000>;
+	};
+
+	cam_sensor_tfe0_clock_source: regulator-cam-sensor-tfe0-clock-source {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_tfe0_clock_source";
+		regulator-always-on;
+		regulator-boot-on;
+		clocks = <&gcc GCC_CAMSS_TFE_0_CLK_SRC>;
+		clock-names = "tfe0_src";
+		assigned-clocks = <&gcc GCC_CAMSS_TFE_0_CLK_SRC>;
+		assigned-clock-rates = <0x11e1a300>;
+	};
+
+	cam_sensor_tfe1_clock_source: regulator-cam-sensor-tfe1-clock-source {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_tfe1_clock_source";
+		regulator-always-on;
+		regulator-boot-on;
+		clocks = <&gcc GCC_CAMSS_TFE_1_CLK_SRC>;
+		clock-names = "tfe1_src";
+		assigned-clocks = <&gcc GCC_CAMSS_TFE_1_CLK_SRC>;
+		assigned-clock-rates = <0x11e1a300>;
+	};
+
+	cam_sensor_tfe2_clock_source: regulator-cam-sensor-tfe2-clock-source {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_tfe2_clock_source";
+		regulator-always-on;
+		regulator-boot-on;
+		clocks = <&gcc GCC_CAMSS_TFE_2_CLK_SRC>;
+		clock-names = "tfe2_src";
+		assigned-clocks = <&gcc GCC_CAMSS_TFE_2_CLK_SRC>;
+		assigned-clock-rates = <0x11e1a300>;
+	};
+
+	cam_sensor_mclk_gpio: regulator-cam-sensor-mclk-gpio {
+		compatible = "regulator-gpio";
+		regulator-name = "cam_sensor_mclk_gpio";
+		regulator-always-on;
+		regulator-boot-on;
+		gpios = <&tlmm 20 0
+			 &tlmm 21 0
+			 &tlmm 27 0
+			 &tlmm 28 0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_sensor_mclk0_default &cam_sensor_mclk1_default
+		&cam_sensor_mclk2_default &cam_sensor_mclk3_default>;
+	};
+
+	cam_sensor_mclk0_clock: regulator-cam-sensor-mclk0-clock {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_mclk0_clock";
+		regulator-always-on;
+		regulator-boot-on;
+
+		clocks = <&gcc GCC_CAMSS_MCLK0_CLK>;
+		clock-names = "mclk0";
+
+		assigned-clocks = <&gcc GCC_CAMSS_MCLK0_CLK>;
+		assigned-clock-rates = <24000000>;
+	};
+
+	cam_sensor_mclk1_clock: regulator-cam-sensor-mclk1-clock {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_mclk1_clock";
+		regulator-always-on;
+		regulator-boot-on;
+
+		clocks = <&gcc GCC_CAMSS_MCLK1_CLK>;
+		clock-names = "mclk1";
+
+		assigned-clocks = <&gcc GCC_CAMSS_MCLK1_CLK>;
+		assigned-clock-rates = <19200000>;
+	};
+
+	cam_sensor_mclk2_clock: regulator-cam-sensor-mclk2-clock {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_mclk2_clock";
+		regulator-always-on;
+		regulator-boot-on;
+
+		clocks = <&gcc GCC_CAMSS_MCLK2_CLK>;
+		clock-names = "mclk2";
+
+		assigned-clocks = <&gcc GCC_CAMSS_MCLK2_CLK>;
+		assigned-clock-rates = <19200000>;
+	};
+
+	cam_sensor_mclk3_clock: regulator-cam-sensor-mclk3-clock {
+		compatible = "regulator-fixed-clock";
+		regulator-name = "cam_sensor_mclk3_clock";
+		regulator-always-on;
+		regulator-boot-on;
+
+		clocks = <&gcc GCC_CAMSS_MCLK3_CLK>;
+		clock-names = "mclk3";
+
+		assigned-clocks = <&gcc GCC_CAMSS_MCLK3_CLK>;
+		assigned-clock-rates = <19200000>;
+	};
+
+	cam_sensor_vaf_rear0: regulator-cam-sensor-vaf-rear0 {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_sensor_vaf_rear0";
+		gpio = <&tlmm 102 0>;
+		enable-active-high;
+		regulator-always-on;
+		regulator-boot-on;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_sensor_rear0_vaf_default>;
+	};
+
+	cam_sensor_rear23_vio: regulator-cam-sensor-rear23-vio {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_sensor_rear23_vio";
+		gpio = <&tlmm 66 0>;
+		enable-active-high;
+		regulator-always-on;
+		regulator-boot-on;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_sensor_rear23_vio_default>;
+	};
+};
+/* End Fallback Clocks */
 
 &soc {
 	rxmacro: codec@a600000 {
@@ -767,6 +899,64 @@
 		bias-pull-up;
 		input-enable;
 	};
+
+	cam_sensor_mclk0_default: cam-sensor-mclk0-default {
+		pins = "gpio20";
+		function = "cam_mclk";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	cam_sensor_mclk1_default: cam-sensor-mclk1-default {
+		pins = "gpio21";
+		function = "cam_mclk";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	cam_sensor_mclk2_default: cam-sensor-mclk2-default {
+		pins = "gpio27";
+		function = "cam_mclk";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	cam_sensor_mclk3_default: cam-sensor-mclk3-default {
+		pins = "gpio28";
+		function = "cam_mclk";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	cam_sensor_rear0_reset_default: cam-sensor-rear0-reset-default {
+		pins = "gpio18";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	cam_sensor_rear0_vaf_default: cam-sendor-rear0-vaf-default {
+		pins = "gpio102";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-high;
+	};
+
+	cam_sensor_rear23_vio_default: cam-sensor-rear23-vio-default {
+		pins = "gpio66";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	wl2866d_default: wl2866d-default {
+		pins = "gpio26";
+		function = "gpio";
+		bias-pull-up;
+		drive-strength = <0x02>;
+		output-high;
+	};
 };
 
 &gpi_dma0 {
@@ -774,6 +964,14 @@
 };
 
 &qupv3_id_0 {
+	status = "okay";
+};
+
+&spi0 {
+	status = "okay";
+};
+
+&i2c4 {
 	status = "okay";
 };
 
@@ -816,6 +1014,44 @@
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
+
+	wl2866d: pmic@28 {
+		compatible = "ovti,wl2866d";
+		reg = <0x28>;
+		enable-gpios = <&tlmm 26 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&wl2866d_default>;
+		pinctrl-names = "default";
+
+		regulators {
+			wl2866d_dvdd1: dvdd1 {
+				regulator-name = "dvdd1";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <1200000>;
+				regulator-always-on;
+			};
+
+			wl2866d_dvdd2: dvdd2 {
+				regulator-name = "dvdd2";
+				regulator-min-microvolt = <1050000>;
+				regulator-max-microvolt = <1050000>;
+				regulator-always-on;
+			};
+
+			wl2866d_avdd1: avdd1 {
+				regulator-name = "avdd1";
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
+				regulator-always-on;
+			};
+
+			wl2866d_avdd2: avdd2 {
+				regulator-name = "avdd2";
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
+				regulator-always-on;
+			};
+		};
+	};
 
 	left_spkr: aw87xxx_pa_58@58 {
 		compatible = "awinic,aw87xxx_pa";
@@ -1056,13 +1292,19 @@
 		 */
 
 		pm6125_s3: s3 {
-			regulator-min-microvolt = <300000>;   /* 0.3V minimum */
-			regulator-max-microvolt = <1372000>;  /* 1.372V maximum */
+			regulator-min-microvolt = <300000>;
+			regulator-max-microvolt = <1372000>;
 			regulator-always-on;
 		};
 		pm6125_s4: s4 {
-			regulator-min-microvolt = <300000>;   /* 0.3V minimum */
-			regulator-max-microvolt = <1372000>;  /* 1.372V maximum */
+			regulator-min-microvolt = <300000>;
+			regulator-max-microvolt = <1372000>;
+			regulator-always-on;
+		};
+
+		pm6125_s5: s5 {
+			regulator-min-microvolt = <382000>;
+			regulator-max-microvolt = <1120000>;
 			regulator-always-on;
 		};
 
@@ -1365,6 +1607,53 @@
 		max-speed = <3200000>;
 	};
 };
+
+&cci {
+	status = "okay";
+};
+
+&cci_i2c0 {
+	camera@10 {
+		compatible = "samsung,s5kjn1";
+		reg = <0x10>;
+
+		pinctrl-0 = <&cam_sensor_rear0_reset_default>;
+		pinctrl-names = "default";
+
+		reset-gpios = <&tlmm 18 GPIO_ACTIVE_LOW>;
+
+		vdda-supply  = <&wl2866d_avdd1>;   /* 2800 mV analog */
+		vddd-supply  = <&wl2866d_dvdd2>;   /* 1050 mV digital */
+		afvdd-supply = <&wl2866d_avdd2>;   /* 2800 mV autofocus */
+
+		clocks = <&gcc GCC_CAMSS_MCLK0_CLK>;
+		clock-names = "mclk";
+		assigned-clocks = <&gcc GCC_CAMSS_MCLK0_CLK>;
+		assigned-clock-rates = <24000000>;
+
+		port {
+			s5kjn1_ep: endpoint {
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <700000000>;
+				remote-endpoint = <&csiphy0_ep>;
+			};
+		};
+	};
+};
+
+&camss {
+	status = "okay";
+
+	ports {
+		port@0 {
+			csiphy0_ep: endpoint {
+				data-lanes = <1 2 3 4>;
+				remote-endpoint = <&s5kjn1_ep>;
+			};
+		};
+	};
+};
+
 
 &venus {
 	status = "okay";

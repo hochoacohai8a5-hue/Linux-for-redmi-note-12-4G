@@ -897,6 +897,8 @@ static int s5kjn1_enable_streams(struct v4l2_subdev *sd,
 	const struct s5kjn1_reg_list *reg_list = &s5kjn1->mode->reg_list;
 	int ret;
 
+	dev_info(s5kjn1->dev, "s5kjn1: enable_streams called\n");
+
 	ret = pm_runtime_resume_and_get(s5kjn1->dev);
 	if (ret)
 		return ret;
@@ -910,12 +912,14 @@ static int s5kjn1_enable_streams(struct v4l2_subdev *sd,
 	cci_write(s5kjn1->regmap, CCI_REG16(0x001e), 0x0007, &ret);
 	cci_write(s5kjn1->regmap, CCI_REG16(0x6028), 0x4000, &ret);
 	cci_write(s5kjn1->regmap, CCI_REG16(0x6010), 0x0001, &ret);
+	dev_info(s5kjn1->dev, "s5kjn1: streaming write ret=%d\n", ret);
 	if (ret)
 		goto error;
 
 	usleep_range(5 * USEC_PER_MSEC, 6 * USEC_PER_MSEC);
 
 	cci_write(s5kjn1->regmap, CCI_REG16(0x6226), 0x0001, &ret);
+	dev_info(s5kjn1->dev, "s5kjn1: streaming write ret=%d\n", ret);
 	if (ret)
 		goto error;
 
@@ -926,6 +930,7 @@ static int s5kjn1_enable_streams(struct v4l2_subdev *sd,
 			    ARRAY_SIZE(init_array_setting), &ret);
 	cci_multi_reg_write(s5kjn1->regmap, reg_list->regs,
 			    reg_list->num_regs, &ret);
+	dev_info(s5kjn1->dev, "s5kjn1: streaming write ret=%d\n", ret);
 	if (ret)
 		goto error;
 
@@ -933,6 +938,7 @@ static int s5kjn1_enable_streams(struct v4l2_subdev *sd,
 
 	cci_write(s5kjn1->regmap, S5KJN1_REG_CTRL_MODE,
 		  S5KJN1_MODE_STREAMING, &ret);
+	dev_info(s5kjn1->dev, "s5kjn1: streaming write ret=%d\n", ret);
 	if (ret)
 		goto error;
 
