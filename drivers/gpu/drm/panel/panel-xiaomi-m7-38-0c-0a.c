@@ -122,6 +122,7 @@ static int xiaomi_m7_38_0c_0a_on(struct xiaomi_m7_38_0c_0a *ctx)
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xf0, 0xa5, 0xa5);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xfc, 0xa5, 0xa5);
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x53, 0x28);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x51, 0x00, 0x00);
 	mipi_dsi_msleep(&dsi_ctx, 100);
 	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
 	return dsi_ctx.accum_err;
