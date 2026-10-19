@@ -60,6 +60,7 @@ static const struct snd_soc_dapm_widget max98090_dapm_widgets[] = {
 
 static const struct snd_kcontrol_new tapas_controls[] = {
 	SOC_DAPM_PIN_SWITCH("Speaker"),
+	SOC_DAPM_PIN_SWITCH("Receiver"),
 	SOC_DAPM_PIN_SWITCH("Headphone Jack"),
 	SOC_DAPM_PIN_SWITCH("Mic Jack"),
 };
@@ -68,10 +69,12 @@ static const struct snd_soc_dapm_widget tapas_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone Jack", NULL),
 	SND_SOC_DAPM_MIC("Mic Jack", NULL),
 	SND_SOC_DAPM_SPK("Speaker", NULL),
+	SND_SOC_DAPM_SPK("Receiver", NULL),
 };
 
 static const struct snd_soc_dapm_route tapas_dapm_routes[] = {
 	{ "Speaker", NULL, "SpkrLeft OUT" },
+	{ "Receiver", NULL, "EAR" },
 	{ "SpkrLeft IN", NULL, "AUX" },
 	{ "Headphone Jack", NULL, "HPHL" },
 	{ "Headphone Jack", NULL, "HPHR" },
