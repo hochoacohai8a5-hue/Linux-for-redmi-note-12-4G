@@ -100,9 +100,9 @@
 		vdd-rxtx-supply = <&pm6125_l9>;
 		vdd-px-supply = <&pm6125_l9>;
 
-		qcom,micbias1-microvolt = <1800000>;
+		qcom,micbias1-microvolt = <2700000>;
 		qcom,micbias2-microvolt = <2800000>;
-		qcom,micbias3-microvolt = <1800000>;
+		qcom,micbias3-microvolt = <2700000>;
 
 		qcom,rx-device = <&wcd937x_rx>;
 		qcom,tx-device = <&wcd937x_tx>;
@@ -306,6 +306,23 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-disable;
+	};
+
+	bq2589x_int_default: bq2589x-int-default-state {
+		pins = "gpio105";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+		input-enable;
+	};
+
+	/* GPIO66: BQ25890 USB D+/D- switch; downstream confirmed output-low idle */
+	bq2589x_usb_switch_default: bq2589x-usb-switch-default-state {
+		pins = "gpio66";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
 	};
 };
 
@@ -567,6 +584,14 @@
 	maximum-speed = "high-speed";
 	dr_mode = "otg";
 	usb-role-switch;
+
+	ports {
+		port@0 {
+			usb_dwc3_hs: endpoint {
+				remote-endpoint = <&typec_con_hs>;
+			};
+		};
+	};
 };
 
 &usb_hsphy {
@@ -793,14 +818,94 @@
 		status = "okay";
 	};
 
+	bq25890: bq25890@6a {
+		compatible = "ti,bq25890";
+		reg = <0x6a>;
+
+		interrupt-parent = <&tlmm>;
+		interrupts = <105 IRQ_TYPE_EDGE_FALLING>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&bq2589x_int_default>;
+
+		ti,charge-current = <2000000>;         /* 2 A */
+		ti,battery-regulation-voltage = <4450000>; /* 4.45 V */
+		ti,termination-current = <256000>;     /* 256 mA */
+		ti,precharge-current = <128000>;       /* 128 mA */
+		ti,minimum-sys-voltage = <3500000>;    /* 3.5 V */
+		ti,boost-voltage = <5000000>;          /* 5 V OTG boost */
+		ti,boost-max-current = <1500000>;      /* 1.5 A OTG */
+		ti,input-current-sdp = <500000>;       /* SDP: 500 mA */
+		ti,input-current-cdp = <1500000>;      /* CDP: 1.5 A */
+		ti,input-current-dcp = <2000000>;      /* DCP: 2 A */
+		ti,enable-auto-dpdm;
+		ti,enable-termination;
+		/* GPIO66: USB D+/D- switch (downstream confirmed) */
+		usb-switch-gpios = <&tlmm 66 GPIO_ACTIVE_HIGH>;
+
+		status = "okay";
+
+		/*
+		 * OTG boost output; consumed by rt1711h vbus-supply for
+		 * host-mode VBUS.  No voltage constraints: the bq boost
+		 * ops expose no voltage list, so fixed min/max would fail
+		 * registration.
+		 */
+		usb_otg_vbus: usb-otg-vbus {
+			regulator-name = "usb_otg_vbus";
+		};
+	};
+
 	rt1711h@4e {
 		compatible = "richtek,rt1711h";
 		reg = <0x4e>;
-		status = "okay";
+
+		/*
+		 * Host-mode VBUS comes from the BQ25890 boost output.
+		 * Without this the TCPC cannot probe on mainline.
+		 */
+		vbus-supply = <&usb_otg_vbus>;
+
 		interrupt-parent = <&tlmm>;
 		interrupts = <93 IRQ_TYPE_LEVEL_LOW>;
+
 		pinctrl-names = "default";
 		pinctrl-0 = <&rt1711h_int_n>;
+
+		status = "okay";
+
+		connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			power-role = "dual";
+			data-role = "dual";
+			try-power-role = "sink";
+
+			source-pdos = <PDO_FIXED(5000, 900,
+				PDO_FIXED_USB_COMM | PDO_FIXED_DUAL_ROLE)>;
+			/*
+			 * 9 V max: the SC8551 divider path faults above 12 V
+			 * (bus-ovp threshold), so 12 V/20 V must not be
+			 * offered even though the adapter can do more.
+			 * 9 V/3 A = 27 W is the fastest standard-PD mode.
+			 */
+			sink-pdos = <PDO_FIXED(5000, 3000,
+					PDO_FIXED_USB_COMM | PDO_FIXED_DUAL_ROLE)
+				     PDO_FIXED(9000, 3000, 0)>;
+			op-sink-microwatt = <27000000>; /* 27 W */
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					typec_con_hs: endpoint {
+						remote-endpoint = <&usb_dwc3_hs>;
+					};
+				};
+			};
+		};
 	};
 
 	aw87xxx: aw87xxx_pa_59@59 {
